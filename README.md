@@ -1,0 +1,105 @@
+# pc-file-audit · PC 文件审计与清理决策技能
+
+> 让 AI 助手帮你把电脑上每个文件夹/文件"是什么、多大、能不能删"讲清楚，你逐项拍板，安全清理。**免费 · 开源 · 社区共建**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/Platform-Windows-blue)
+![Language](https://img.shields.io/badge/Language-简体中文-brightgreen)
+
+---
+
+## 🎯 这是什么
+
+一个给 AI 助手（Claude/豆包/Cursor 等支持 Skill 的 Agent）用的**电脑文件审计技能**。它让 AI 能够：
+
+1. **扫描**你的整个磁盘（只读，不碰任何文件）
+2. **识别**每个文件夹/文件是干什么的（软件/系统/个人数据/缓存/残留）
+3. **三档分类**：🔴必须保留 / 🟢明确可删 / 🟡你判断
+4. **你逐项决策**（"1-10删""这些都保留"），AI 按你的点名安全清理
+5. **记住你的决策**（decisions.md），同类文件下次自动按你的习惯处理
+6. **自我迭代**：每次使用把新坑/新经验写回经验库，越用越准
+
+## 🚀 快速开始
+
+### 方式一：装进 AI 助手（推荐）
+
+把本仓库 `pc-file-audit/` 文件夹复制到你电脑的 Skill 目录：
+
+```
+Windows:  %USERPROFILE%\.doubao\agent_mode\workspace\.user_skills\pc-file-audit
+Claude:   ~/.claude/skills/pc-file-audit
+```
+
+然后对 AI 说：
+
+> "分析一下我 C 盘上都有什么文件，哪些能删"
+> "看下 D 盘这些文件夹是干什么的，还需要吗"
+> "帮我生成一份文件清理判断清单"
+
+### 方式二：手动使用
+
+不装 Skill 也能用脚本：
+
+```powershell
+# 1. 扫描 D 盘目录占用（只读）
+powershell -ExecutionPolicy Bypass -File scripts/scan_dirs.ps1 -Drive D
+
+# 2. 对照 references/dir-guide.md 判断每个目录功能
+```
+
+## 🧠 工作原理
+
+```
+扫描(只读) → 目录功能识别 → 三档分类 → 用户逐项决策 → 安全删除 → 汇报+记录
+                            ↓                    ↓
+                  深度扫描检查清单(8项)     decisions.md 决策记忆
+```
+
+**安全原则**：
+- 只报告不越权：删除前必须用户点名
+- 宁可漏删，不可误删个人文件
+- L3 黑名单永远不做：停杀毒服务 / 动 System32 / 删个人目录 / bcdedit 写操作
+- 默认进回收站（回收站被禁用的机器自动降级为"清单确认+永久删"）
+
+## 📦 目录结构
+
+```
+pc-file-audit/
+├── SKILL.md                  # 技能主文件（给 AI 读）
+├── references/
+│   ├── dir-guide.md          # Windows 常见目录功能对照表
+│   ├── fixes.md              # 实战修复案例（服务/回收站/残留）
+│   ├── experience-log.md     # 经验库（自我迭代载体）
+│   └── decisions.md          # 用户决策记忆模板
+└── scripts/
+    └── scan_dirs.ps1         # 目录占用扫描脚本（只读）
+```
+
+## 🤝 社区共建（收集所有人的优势）
+
+这个项目的核心设计是**众人拾柴**：每个人的电脑都是不同的"标本"，遇到的坑、发现的残留类型、验证过的删除规则，都能让这个技能更聪明。
+
+**你可以贡献**：
+
+| 贡献类型 | 怎么做 |
+|---|---|
+| 🐛 报告新坑/新报错 | 开 Issue（选"新坑报告"模板） |
+| 🗂️ 补充目录对照 | 你电脑上有个 dir-guide 没覆盖的目录 → 提 PR 加到 `references/dir-guide.md` |
+| 🧹 新残留类型 | 发现一种新的卸载残留模式 → 提 PR 更新 `SKILL.md` 深度扫描清单 |
+| ⚡ 脚本优化 | 更快/更稳的扫描脚本 → 提 PR 到 `scripts/` |
+| 🌍 其他平台 | macOS/Linux 的目录对照 → 新增 `references/dir-guide-macos.md` |
+| 📝 文档改进 | README/模板任何改进 |
+
+**贡献流程**：`Fork → 改 → PR → 审核合并`，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。所有经验条目自动进入 `experience-log.md`，沉淀进技能。
+
+## 📜 开源协议
+
+[MIT License](LICENSE) —— **完全免费**，商用/个人/修改都行，保留版权声明即可。
+
+## 🗓️ 版本历史
+
+见 [CHANGELOG.md](CHANGELOG.md)。
+
+---
+
+> 💡 **灵感来源**：本项目由"联想 G505 老电脑全盘清理实战"蒸馏而来，实战清出 26GB+ 空间。GitHub 开源工具调研（WinDirStat/WizTree/Czkawka/CleanOS 等）的思路已融入深度扫描检查清单。
