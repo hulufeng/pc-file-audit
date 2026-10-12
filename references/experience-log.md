@@ -1,6 +1,19 @@
-# 经验库（experience-log）
+﻿# 经验库（experience-log）
 
 本文件是 pc-file-audit 的自我迭代载体。每次使用 Skill 完成任务后，按 SKILL.md「自我迭代协议」在**顶部**追加新经验条目。新条目在上，旧条目在下。
+
+---
+
+## [2026-10-12] 技能开源发布 GitHub 流程经验
+- 场景：把 pc-file-audit 发布为开源仓库（免费使用、社区共建迭代）
+- 关键经验：
+  1. **GitHub 密码认证已废弃**：git/API 只能用 Token 或 OAuth，不要尝试账号密码
+  2. **国内网络**：GitHub releases 资产下载会超时，git 用 `registry.npmmirror.com/-/binary/git-for-windows/` 镜像；api.github.com 可直连
+  3. **沙箱内 GCM 不弹浏览器**：Git Credential Manager 的浏览器授权窗口在沙箱/后台会话弹不出来；改用 **GitHub Device Flow**（`POST github.com/login/device/code` → 用户浏览器输设备码 → 轮询 `login/oauth/access_token`），全程可脚本化、用户只需输 8 位码
+  4. **curl 传 JSON 到 GitHub API**：PowerShell 内联中文 JSON 会转义出错（"Problems parsing JSON"），用 `[IO.File]::WriteAllText` 写 body 文件 + `--data-binary @file`
+  5. token 用环境变量传递、`git credential approve` 存入凭据管理器，避免落盘命令历史
+- 发布物：github.com/hulufeng/pc-file-audit（MIT、README/CONTRIBUTING/Issue模板齐备）
+- 状态：已合并（"GitHub 发布"流程可复用）
 
 ---
 
@@ -78,7 +91,7 @@
 ## [2026-10-11] 全盘文件级最小单位审计（96,377 文件）
 
 ### [2026-10-11] 文件级基线记忆已建立
-- 本机（联想 G505）已做全盘文件级分析，基线文档：`%USERPROFILE%\Doubao\chats\2026-10-10\new-chat-2\全盘文件基线记忆库.md`
+- 本机（联想 G505）已做全盘文件级分析，基线文档：`C:\Users\Administrator\Doubao\chats\2026-10-10\new-chat-2\全盘文件基线记忆库.md`
 - 数据源：`全盘文件级用途清单.csv`（96,377 条：路径/大小/文件类型/所属软件）
 - 复用规则：用户再问"XX 文件是什么/能不能删"时，先查基线记忆库和 CSV，无需重扫；文件系统变化后需增量重扫（compare 基线）
 - 状态：已建立
@@ -149,9 +162,9 @@
 - 状态：待合并（可并入 dir-guide.md 分类规则）
 
 ### [2026-10-11] 用户数据可能全在 D 盘，个人目录接近全空
-- 场景：扫描 `C:\Users\<用户名>` 的 Desktop/Documents/Downloads 等
+- 场景：扫描 C:\Users\Administrator 的 Desktop/Documents/Downloads 等
 - 现象：全部 0MB（只有 desktop.ini 和空壳目录）
-- 根因：该用户把个人数据全部放在 D 盘（个人文件夹），C 盘个人目录只是系统默认壳
+- 根因：该用户把个人数据全部放在 D 盘（2定陶天缘 等），C 盘个人目录只是系统默认壳
 - 解法：审计用户目录前先看数据盘分布；个人目录空 ≠ 用户没数据，别据此判断"用户没文件"
 - 状态：待合并
 
