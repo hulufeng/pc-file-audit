@@ -4,6 +4,20 @@
 
 ---
 
+## [2026-10-12] 可视化窗口 GUI 开发经验（PowerShell + WinForms 零依赖版）
+- 场景：用户要求"扫客户电脑后做成可视化窗口"，为开源工具加 GUI 界面
+- ①**沙箱 Python 无 Tcl**：`tkinter.Tk()` 报 `Can't find a usable init.tcl`——沙箱运行时 python 缺 tcl 库；客户机无 Python 依赖时 tkinter 方案不可行
+- ②**改用 PowerShell + WinForms 零依赖**：`Add-Type -AssemblyName System.Windows.Forms`，Windows 5.1 自带，客户机直接可跑（双击/右键 PowerShell 运行）
+- ③**BackgroundWorker 事件脚本块在后台线程无 runspace**：PowerShell 5.1 的 `$worker.Add_DoWork({...})` 里调用自定义函数报"此线程中没有可用于运行脚本的运行空间"——**必须用独立 Runspace**（`[runspacefactory]::CreateRunspace()` + `[powershell]::Create()` + `AddScript().AddArgument()` + `BeginInvoke()`）
+- ④**进度/结果跨线程**：共享 `[hashtable]::Synchronized(@{Running;Progress;Current;Done;Data;Error})` 由后台写、UI `System.Windows.Forms.Timer`(300ms) 轮询读，完成时 `EndInvoke` + 填表
+- ⑤**回收站删除 C# 内联**：`Add-Type -TypeDefinition` 定义 SHFILEOPSTRUCT + SHFileOperation(FO_DELETE|FOF_ALLOWUNDO|FOF_NOCONFIRMATION|FOF_SILENT)
+- ⑥**验证钩子**：脚本支持 `-AutoScan D:` 参数启动即自动扫描，配合整屏截图（System.Drawing CopyFromScreen）自动化验证 GUI
+- ⑦**函数名坑**：PowerShell 里自定义函数名 `Del` 与 Remove-Item 别名冲突，非交互模式报"朗读和提示功能不可用"——函数名避开内置别名
+- 产物：`pc-file-audit-gui.ps1`（仓库根目录）+ `pc-file-audit-gui.py`（tkinter 备用）
+- 状态：待合并（GUI 流程可复用）
+
+---
+
 ## [2026-10-12] 技能开源发布 GitHub 流程经验
 - 场景：把 pc-file-audit 发布为开源仓库（免费使用、社区共建迭代）
 - 关键经验：

@@ -95,9 +95,28 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
    - 不新建多余的顶层文档（README/CHANGELOG 等）；一切沉淀进现有结构
    - 每完成一次"合并"，在 experience-log 里把对应条目标注 [已合并]，保持经验库可追溯
 
+## 可视化窗口（GUI 模式，2026-10-12 加入）
+
+用户要求"扫客户电脑后做成可视化窗口"或需要给非技术用户自助清理时，交付 `pc-file-audit-gui.ps1`（PowerShell + WinForms，**零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需装 Python/任何库）。
+
+用法：
+1. 复制 `pc-file-audit-gui.ps1` 到客户电脑，右键 → 使用 PowerShell 运行（或双击）
+2. 选择盘符 → 开始扫描 → 表格列出每个目录（名称/大小/🔴保留/🟢可删/🟡判断/说明）
+3. 右侧条形图展示 Top15 目录占用（红=保留 绿=可删 黄=判断）
+4. 勾选要删项（🟢 默认勾选）→ 删除按钮 → 优先进回收站（SHFileOperationW），失败才永久删
+
+技术要点：
+- **PowerShell 5.1 后台扫描必须用独立 Runspace**（`[runspacefactory]::CreateRunspace()` + `[powershell]::Create()`），不能用 BackgroundWorker 事件脚本块（后台线程无运行空间，调用函数报"此线程中没有可用于运行脚本的运行空间"）
+- 进度刷新：共享 `[hashtable]::Synchronized(@{...})` 由后台写入，UI 用 `System.Windows.Forms.Timer`（300ms）轮询读取
+- 分类规则精简内置在脚本顶部 `$RULES_R/$RULES_G`，完整表见 `references/dir-guide.md`
+- 脚本必须 UTF-8 BOM；`Add-Type -TypeDefinition` 内联 C# 实现回收站删除
+- 验证参数：`-AutoScan D:` 启动后自动扫描指定盘，便于自动化截图验证
+- 辅助实现 `pc-file-audit-gui.py`（tkinter 版）仅在系统 Python 带完整 Tcl 时可用；沙箱/精简 Python 会报 `Can't find a usable init.tcl`，优先用 .ps1 版
+
 ## 资源
 
 - `scripts/scan_dirs.ps1` —— 目录占用扫描（一级/二级/大文件），只读
+- `pc-file-audit-gui.ps1` —— **可视化窗口 GUI（零依赖，客户电脑直接可跑）**
 - `references/dir-guide.md` —— Windows 常见目录功能对照表 + 分类规则
 - `references/fixes.md` —— 实战修复案例（服务文件缺失、SCM 缓存、卸载残留、回收站清不净）
 - `references/experience-log.md` —— **经验库**：每次任务的复盘沉淀，是自我迭代的载体
