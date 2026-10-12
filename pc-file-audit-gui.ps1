@@ -1,4 +1,4 @@
-﻿﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
+﻿﻿﻿﻿﻿﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
 # =============================================================================
 # 双击运行（或右键 -> 使用 PowerShell 运行）
 # 功能：选择盘符 -> 扫描 -> 表格可视化三档分类（红/绿/黄）-> 勾选删除（进回收站）
@@ -15,13 +15,14 @@ $autoScan = $null
 for ($i = 0; $i -lt $args.Count; $i++) { if ($args[$i] -eq "-AutoScan") { $autoScan = $args[$i + 1] } }
 
 # ---------- 分类规则（精简内置版，完整见 references/dir-guide.md） ----------
-$RULES_R = @("\\windows","program files","\\users","programdata",
+# 注意：PowerShell 双引号内反斜杠无需转义，路径分隔符直接写 \x
+$RULES_R = @("\windows","program files","\users","programdata",
              "system volume information","pagefile.sys","swapfile.sys",
-             "hiberfil.sys","\\recovery","\\boot","$recycle.bin")
-$RULES_G = @("cache","temp","\\tmp","\\log","update\\download","\\download\\mainapp",
-             "\\install","old","残留","backup\\","autoupdate","\\logs",
+             "hiberfil.sys","\recovery","\boot","$recycle.bin")
+$RULES_G = @("cache","temp","\tmp","\log","\logs","update\download","\download\mainapp",
+             "\install","old","残留","\backup","autoupdate","softwaredistribution\download",
              "steam","qqlive","aliwangwang","duowan","gensee","qqpcmgr","qq管家",
-             "kgenuine","w3cschool","微信开发者工具","statespace","aim lab","sogouinput\\components")
+             "kgenuine","w3cschool","微信开发者工具","statespace","aim lab","sogouinput\components")
 
 # ---------- 回收站删除（SHFileOperationW，C# 内联） ----------
 Add-Type -TypeDefinition @"
@@ -157,7 +158,7 @@ function Update-Chart {
 # ---------- 共享状态（后台线程写入，UI Timer 读取） ----------
 $script:shared = [hashtable]::Synchronized(@{
     Running = $false; Progress = 0; Current = ""; Done = $false
-    Data = $null; Error = $null; Drive = ""
+    Data = $null; Error = $null; Drive = ""; FileCount = 0
 })
 
 # ---------- 扫描脚本（在独立 Runspace 中执行，可调用函数） ----------
@@ -165,18 +166,28 @@ $scanScript = {
     param($drive, $rulesR, $rulesG, $shared)
     function Get-Category([string]$path) {
         $low = $path.ToLower()
-        foreach ($kw in $rulesR) { if ($low -like "*$kw*") { return @("R", "系统/在用，必须保留") } }
+        # 先查可删规则再查保留规则：否则 \windows 会把 Windows\Temp 等缓存也标成保留
         foreach ($kw in $rulesG) { if ($low -like "*$kw*") { return @("G", "缓存/残留，可清理") } }
+        foreach ($kw in $rulesR) { if ($low -like "*$kw*") { return @("R", "系统/在用，必须保留") } }
         return @("Y", "用户判断是否继续使用")
     }
-    function Get-DirSizeMB([string]$path) {
-        $sum = 0
-        try {
-            $sum = (Get-ChildItem $path -Recurse -File -Force -EA SilentlyContinue |
-                    Measure-Object Length -Sum).Sum
-        } catch {}
-        if ($null -eq $sum) { return 0 }
-        return [math]::Round($sum / 1MB, 1)
+    function Get-DirSizeMB([string]$path, $shared) {
+        $total = 0L
+        $fc = 0
+        $stack = New-Object System.Collections.Stack
+        $stack.Push($path)
+        while ($stack.Count -gt 0) {
+            $dir = $stack.Pop()
+            try {
+                $shared.Current = $dir
+                $di = [System.IO.DirectoryInfo]::new($dir)
+                foreach ($sd in $di.EnumerateDirectories()) { $stack.Push($sd.FullName) }
+                foreach ($f in $di.EnumerateFiles()) { try { $total += $f.Length; $fc++ } catch {} }
+                if ($fc -ge 3000) { $shared.FileCount += $fc; $fc = 0 }
+            } catch {}
+        }
+        if ($fc -gt 0) { $shared.FileCount += $fc }
+        return [math]::Round($total / 1MB, 1)
     }
     $results = New-Object System.Collections.ArrayList
     try {
@@ -187,12 +198,12 @@ $scanScript = {
             $d = $topDirs[$i]
             $shared.Progress = [int](($i + 1) / $n * 100)
             $shared.Current = $d.Name
-            $s = Get-DirSizeMB $d.FullName
+            $s = Get-DirSizeMB $d.FullName $shared
             $c = Get-Category $d.FullName
             [void]$results.Add([pscustomobject]@{ Name=$d.Name; Path=$d.FullName; SizeMB=$s; Cat=$c[0]; Desc=$c[1]; Level=0 })
             if ($c[0] -ne "R") {
                 Get-ChildItem $d.FullName -Directory -Force -EA SilentlyContinue | ForEach-Object {
-                    $ss = Get-DirSizeMB $_.FullName
+                    $ss = Get-DirSizeMB $_.FullName $shared
                     if ($ss -gt 10) {
                         $c2 = Get-Category $_.FullName
                         [void]$results.Add([pscustomobject]@{ Name="    " + $_.Name; Path=$_.FullName; SizeMB=$ss; Cat=$c2[0]; Desc=$c2[1]; Level=1 })
@@ -218,7 +229,7 @@ function Start-Scan {
     $list.Items.Clear(); $chartBox.Controls.Clear()
     $script:shared.Running = $true; $script:shared.Done = $false
     $script:shared.Progress = 0; $script:shared.Current = ""; $script:shared.Error = $null
-    $script:shared.Data = $null; $script:shared.Drive = $drive
+    $script:shared.Data = $null; $script:shared.Drive = $drive; $script:shared.FileCount = 0
     $btnScan.Enabled = $false
     $lblStatus.Text = "扫描中…"
     $prog.Value = 0
@@ -287,7 +298,11 @@ $timer.Interval = 300
 $timer.Add_Tick({
     if ($script:shared.Running) {
         $prog.Value = $script:shared.Progress
-        if ($script:shared.Current) { $lblStatus.Text = "扫描中: $($script:shared.Current)" }
+        if ($script:shared.Current) {
+            $fc = $script:shared.FileCount
+            if ($fc -gt 0) { $lblStatus.Text = "扫描中: $($script:shared.Current) · 已处理 $fc 个文件" }
+            else { $lblStatus.Text = "扫描中: $($script:shared.Current)" }
+        }
         return
     }
     if ($script:shared.Done -and $script:ps -ne $null -and -not $script:ps.HadErrors) {
