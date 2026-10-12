@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
+﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
 # =============================================================================
 # 双击运行（或右键 -> 使用 PowerShell 运行）
 # 功能：选择盘符 -> 扫描 -> 表格可视化三档分类（红/绿/黄）-> 勾选删除（进回收站）
@@ -23,6 +23,35 @@ $RULES_G = @("cache","temp","\tmp","\log","\logs","update\download","\download\m
              "\install","old","残留","\backup","autoupdate","softwaredistribution\download",
              "steam","qqlive","aliwangwang","duowan","gensee","qqpcmgr","qq管家",
              "kgenuine","w3cschool","微信开发者工具","statespace","aim lab","sogouinput\components")
+
+# ---------- 变更历史收据（原创实现，借鉴"每次操作留痕"思路） ----------
+# 每次删除把"时间 + 项目 + 大小"追加写入 ChangeHistory.txt（脚本同目录，UTF-8 BOM，CRLF）
+# 配合回收站 = 每次清理都可追溯、可回滚
+$script:historyFile = Join-Path $PSScriptRoot "ChangeHistory.txt"
+function Add-HistoryBatch([string]$header, [string[]]$lines) {
+    try {
+        $encBom = New-Object System.Text.UTF8Encoding($true)   # 带 BOM（用于首次创建）
+        $encNo  = New-Object System.Text.UTF8Encoding($false)  # 追加时不再写 BOM
+        if (-not (Test-Path $script:historyFile)) {
+            [System.IO.File]::WriteAllText($script:historyFile, "", $encBom)
+        }
+        $sb = New-Object System.Text.StringBuilder
+        [void]$sb.AppendLine("===== $([DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss')) $header =====")
+        foreach ($l in $lines) { [void]$sb.AppendLine("    $l") }
+        [System.IO.File]::AppendAllText($script:historyFile, $sb.ToString(), $encNo)
+    } catch {}
+}
+function Show-History {
+    try {
+        if (Test-Path $script:historyFile) {
+            Start-Process notepad $script:historyFile
+        } else {
+            [System.Windows.Forms.MessageBox]::Show("还没有删除记录。勾选项目删除后会自动写入。", "变更历史")
+        }
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("打开记录失败: $($_.Exception.Message)", "提示")
+    }
+}
 
 # ---------- 回收站删除（SHFileOperationW，C# 内联） ----------
 Add-Type -TypeDefinition @"
@@ -90,9 +119,14 @@ $lblTip.Text = "勾选要删除的项目（绿色=可删，黄色=需判断，�
 $lblTip.Location = New-Object System.Drawing.Point(14, 18); $lblTip.AutoSize = $true
 $lblTip.ForeColor = "#777777"; $botBar.Controls.Add($lblTip)
 
+$btnView = New-Object System.Windows.Forms.Button
+$btnView.Text = "查看删除记录"; $btnView.Location = New-Object System.Drawing.Point(640, 10)
+$btnView.Width = 130; $btnView.Height = 36
+$botBar.Controls.Add($btnView)
+
 $btnDel = New-Object System.Windows.Forms.Button
-$btnDel.Text = "删除勾选项（进回收站）"; $btnDel.Location = New-Object System.Drawing.Point(860, 10)
-$btnDel.Width = 220; $btnDel.Height = 36; $btnDel.BackColor = "#2FA84F"
+$btnDel.Text = "删除勾选项（进回收站）"; $btnDel.Location = New-Object System.Drawing.Point(790, 10)
+$btnDel.Width = 200; $btnDel.Height = 36; $btnDel.BackColor = "#2FA84F"
 $btnDel.ForeColor = "White"; $botBar.Controls.Add($btnDel)
 
 # 中部：左列表 + 右统计面板
@@ -286,20 +320,29 @@ $btnDel.Add_Click({
     $msg += "`n`n⚠ 若回收站通道不可用将永久删除（均为缓存/残留，非个人文件）。"
     $r = [System.Windows.Forms.MessageBox]::Show($msg, "确认删除", "YesNo", "Warning")
     if ($r -ne "Yes") { return }
-    $ok = 0; $rec = 0
+    $ok = 0; $rec = 0; $histLines = @()
     foreach ($p in $paths) {
         if (Test-Path $p) {
             if ([Recycle]::Send($p)) { $rec++ }
             else { Remove-Item $p -Recurse -Force -Confirm:$false }
             $ok++
+            # 从列表取该项大小（扫描时已算好，无需重算）
+            $szTxt = ""
+            foreach ($it in $list.Items) { if ($it.Tag -eq $p) { $szTxt = $it.SubItems[1].Text; break } }
+            $histLines += "$p ($szTxt MB)"
         }
+    }
+    if (@($histLines).Count -gt 0) {
+        Add-HistoryBatch "删除 $(@($histLines).Count) 项（$rec 项进回收站，$($ok - $rec) 项永久删除）" $histLines
     }
     foreach ($item in @($list.Items | Where-Object { $_.Checked })) {
         $list.Items.Remove($item)
     }
-    [System.Windows.Forms.MessageBox]::Show("删除完成：$ok 项，其中 $rec 项进入回收站", "完成")
+    [System.Windows.Forms.MessageBox]::Show("删除完成：$ok 项，其中 $rec 项进入回收站`n`n已写入变更记录：$($script:historyFile)", "完成")
     Update-Chart
 })
+
+$btnView.Add_Click({ Show-History })
 
 # UI 定时器：轮询共享状态刷新进度条 / 完成时填充结果
 $timer = New-Object System.Windows.Forms.Timer
