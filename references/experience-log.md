@@ -4,6 +4,16 @@
 
 ---
 
+## [2026-10-12] GUI 实测三大坑：反斜杠规则失效 / AllDirectories 权限中断 / 分类顺序
+- 场景：本机实测 GUI 扫描 C 盘，发现分类全部误判、大小统计严重偏小（Users 只有 5.9MB）
+- ①**PowerShell 双引号里 `\x` 不转义**：`"\\windows"` 是**两个字面反斜杠**，`-like "*\\windows*"` 永远匹配不上（`"c:\windows" -like "*\windows*"` 才是 True）。PowerShell 转义符是反引号不是反斜杠。修复：规则数组直接写 `"\windows"`（单反斜杠）
+- ②**`.EnumerateFiles(AllDirectories)` 遇首个无权限目录即抛异常中断整个枚举**：Users\AppData 下有受限子目录 → 统计只累加中断前文件 → 大小严重偏小且无报错。修复：**手动 Stack 栈遍历**，逐目录 try/catch，单目录失败只跳过该目录（代价：C 盘全盘约 15 分钟，正确但慢；老机器可接受）
+- ③**分类顺序**：`\windows` 保留规则会吞掉 `Windows\Temp`、`Windows\Logs`、`SoftwareDistribution\Download` 等可删项 → **先查 G（可删）再查 R（保留）**
+- ④进度反馈：共享 hashtable 加 `FileCount`，后台每 3000 文件 +1，UI 显示"扫描中: 当前目录 · 已处理 N 个文件"（长时间扫描必须有文件级进度，否则用户以为卡死）
+- 状态：待合并（GUI 调试经验，PowerShell 反斜杠坑尤其通用）
+
+---
+
 ## [2026-10-12] 可视化窗口 GUI 开发经验（PowerShell + WinForms 零依赖版）
 - 场景：用户要求"扫客户电脑后做成可视化窗口"，为开源工具加 GUI 界面
 - ①**沙箱 Python 无 Tcl**：`tkinter.Tk()` 报 `Can't find a usable init.tcl`——沙箱运行时 python 缺 tcl 库；客户机无 Python 依赖时 tkinter 方案不可行
