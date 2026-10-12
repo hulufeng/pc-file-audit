@@ -4,6 +4,22 @@
 
 ---
 
+## [2026-10-13] Winhance 研究借鉴（memstechtips/Winhance，13.5k stars）
+- 场景：用户要求安装 GitHub 的 Winhance（Windows 优化增强工具）并评估可借鉴点
+- 项目概况：C# WinUI 3（net10.0-windows，35 个 XAML 页），Clean Architecture（Core/Infrastructure/UI + WinGet COM 封装），功能=软件管理/系统优化/外观定制/高级工具（ISO/autounattend）/配置导入导出；61.5MB Inno Setup 安装器，Portable 模式可解压免安装
+- **可借鉴点（已评估）**：
+  1. **变更历史收据**：每次修改写 `ChangeHistory.txt`（时间戳+分组 BeginBatch+UTF-8 BOM+CRLF+绝不抛异常阻断主流程）→ 我们的 GUI 删除操作应写删除日志（路径+大小+时间），配合回收站实现可追溯回滚
+  2. **搜索过滤 UI**：搜索框实时过滤设置项（SearchSuggestionItem+FilterStateChangedEvent）→ GUI 目录多时加搜索框
+  3. **配置导出/导入**：把当前设置状态导出为配置，新机器一键导入 → decisions.md 可升级为 JSON 配置导出/复用
+  4. **设置项数据化**：FeatureDefinition(Id/Name/Category) 列表 → 分类规则 RULES_R/G 可结构化（名称+描述+风险级）
+  5. **侧边栏导航+卡片列表**：WinUI 现代设置页布局 → WinForms 可借鉴分区布局（保持零依赖优势）
+- 技术对比：Winhance 61MB C# WinUI vs 我们 35KB PowerShell 零依赖——**轻量即优势，不换栈**；Winhance 需 .NET 10+Windows SDK 才能编译
+- ⚠️ 授权：Winhance 是 **PolyForm Shield**（免费使用、可服务客户，但不可 fork 重命名分发竞品）→ 借鉴思路/机制可以，不直接抄代码分发
+- 安装方法（国内网络）：api.github.com 可直连查元数据；codeload.github.com 可下载源码 zip；release 资产下载直连可达但**慢且易截断**（61.5MB 装器第一次只下了 40MB 损坏，需校验完整重下）；Inno Setup 便携参数 `/SILENT /SUPPRESSMSGBOXES /TASKS="portableinstall"`
+- 状态：待合并（GUI 增强方向：删除日志/搜索框/配置导出）
+
+---
+
 ## [2026-10-12] GUI 实测三大坑：反斜杠规则失效 / AllDirectories 权限中断 / 分类顺序
 - 场景：本机实测 GUI 扫描 C 盘，发现分类全部误判、大小统计严重偏小（Users 只有 5.9MB）
 - ①**PowerShell 双引号里 `\x` 不转义**：`"\\windows"` 是**两个字面反斜杠**，`-like "*\\windows*"` 永远匹配不上（`"c:\windows" -like "*\windows*"` 才是 True）。PowerShell 转义符是反引号不是反斜杠。修复：规则数组直接写 `"\windows"`（单反斜杠）
