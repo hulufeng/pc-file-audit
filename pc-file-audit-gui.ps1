@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
+﻿﻿﻿﻿﻿﻿﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
 # =============================================================================
 # 双击运行（或右键 -> 使用 PowerShell 运行）
 # 功能：选择盘符 -> 扫描 -> 表格可视化三档分类（红/绿/黄）-> 勾选删除（进回收站）
@@ -201,7 +201,16 @@ $scanScript = {
             $s = Get-DirSizeMB $d.FullName $shared
             $c = Get-Category $d.FullName
             [void]$results.Add([pscustomobject]@{ Name=$d.Name; Path=$d.FullName; SizeMB=$s; Cat=$c[0]; Desc=$c[1]; Level=0 })
-            if ($c[0] -ne "R") {
+            if ($c[0] -eq "R") {
+                # 保留目录只展开"命中可删规则"的二级（如 Windows\Temp、Windows\Logs、更新缓存），其余不深挖
+                Get-ChildItem $d.FullName -Directory -Force -EA SilentlyContinue | ForEach-Object {
+                    $c2 = Get-Category $_.FullName
+                    if ($c2[0] -eq "G") {
+                        $ss = Get-DirSizeMB $_.FullName $shared
+                        [void]$results.Add([pscustomobject]@{ Name="    " + $_.Name; Path=$_.FullName; SizeMB=$ss; Cat=$c2[0]; Desc=$c2[1]; Level=1 })
+                    }
+                }
+            } else {
                 Get-ChildItem $d.FullName -Directory -Force -EA SilentlyContinue | ForEach-Object {
                     $ss = Get-DirSizeMB $_.FullName $shared
                     if ($ss -gt 10) {
