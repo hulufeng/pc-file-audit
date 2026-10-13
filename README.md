@@ -47,6 +47,37 @@ powershell -ExecutionPolicy Bypass -File scripts/scan_dirs.ps1 -Drive D
 # 2. 对照 references/dir-guide.md 判断每个目录功能
 ```
 
+### 方式三：AI 直连（MCP Server）——所有支持 MCP 的 AI 都能调用
+
+> MCP（Model Context Protocol）是 AI 行业标准接口。**只要客户端支持 MCP（Claude / Cursor / Gemini CLI / Qwen Code / Codex / Cherry Studio / ChatWise 等），配置好下面这段就能直接调用扫描/分类/删除能力**——AI 会像人一样自己操作这台电脑的文件审计。
+
+**通用配置片段**（任何 MCP 客户端都适用，把 `<路径>` 换成脚本实际位置）：
+
+```json
+{
+  "mcpServers": {
+    "pc-file-audit": {
+      "command": "powershell",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\path\\to\\pc-file-audit\\scripts\\pc-file-audit-mcp.ps1"]
+    }
+  }
+}
+```
+
+**各客户端配置位置**：
+
+| 客户端 | 怎么配 |
+|---|---|
+| **Claude Desktop** | 编辑 `%APPDATA%\Claude\claude_desktop_config.json`（MSIX 版在 `%LOCALAPPDATA%\Packages\Claude*\LocalCache\Roaming\Claude\`），粘贴上面片段，完全退出重启 |
+| **Cursor** | 设置 → MCP → Add new MCP server → 类型 stdio，command 填 `powershell`，参数填上表 args |
+| **Claude Code** | 终端执行 `claude mcp add --transport stdio pc-file-audit -- powershell -NoProfile -ExecutionPolicy Bypass -File "<完整路径>"` |
+| **Gemini CLI** | 编辑 `%USERPROFILE%\.gemini\settings.json`，加 `"mcpServers": {...}` 段 |
+| **Qwen Code** | 编辑 `%USERPROFILE%\.qwen\settings.json`，加 `"mcpServers": {...}` 段 |
+| **Codex CLI** | 编辑 `%USERPROFILE%\.codex\config.toml`，加 `[mcp_servers.pc-file-audit] command="powershell" args=[...]` |
+| **Cherry Studio / ChatWise / AnythingLLM 等** | 设置 → MCP → 添加本地服务器：command `powershell`，args 同上 |
+
+**⚠️ 安全提醒**：MCP 让 AI 获得操作电脑的能力，务必用可信的 AI 客户端、只配本机 localhost；本项目的删除护栏默认强制（只读扫描、删除需 `confirm=YES`、只进回收站+变更收据），与 Windows-MCP 默认全开相反，安装即安全。
+
 ## 🧠 工作原理
 
 ```
