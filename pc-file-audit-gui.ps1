@@ -192,6 +192,11 @@ $lblLogoSub.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing
 $logoTop.Controls.Add($lblLogoSub)
 
 $script:navInd = @{}
+$lblNavGroup = New-Object System.Windows.Forms.Label
+$lblNavGroup.Text = "功能"; $lblNavGroup.Location = New-Object System.Drawing.Point(18, 74)
+$lblNavGroup.AutoSize = $true; $lblNavGroup.ForeColor = "#5A6B82"
+$lblNavGroup.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 8)
+$navBar.Controls.Add($lblNavGroup)
 function New-NavBtn([string]$text, [int]$top, [string]$name) {
     $ind = New-Object System.Windows.Forms.Panel
     $ind.Width = 4; $ind.Height = 42; $ind.Left = 0; $ind.Top = 0
@@ -209,9 +214,9 @@ function New-NavBtn([string]$text, [int]$top, [string]$name) {
     $navBar.Controls.Add($b)
     return $b
 }
-$btnNavScan  = New-NavBtn "  扫描" 76  "scan"
-$btnNavRules = New-NavBtn "  规则" 122 "rules"
-$btnNavAbout = New-NavBtn "  关于" 168 "about"
+$btnNavScan  = New-NavBtn "  扫描" 92  "scan"
+$btnNavRules = New-NavBtn "  规则" 138 "rules"
+$btnNavAbout = New-NavBtn "  关于" 184 "about"
 
 $navFooter = New-Object System.Windows.Forms.Label
 $navFooter.Text = "v1.2 · 零依赖`nMIT 开源" 
@@ -264,8 +269,11 @@ $prog.Location = New-Object System.Drawing.Point(556, 22); $prog.Width = 230; $p
 $prog.Style = "Continuous"; $topBar.Controls.Add($prog)
 
 $lblStatus = New-Object System.Windows.Forms.Label
-$lblStatus.Text = "就绪 · 选择盘符后点击开始扫描"; $lblStatus.Location = New-Object System.Drawing.Point(800, 24)
-$lblStatus.AutoSize = $true; $lblStatus.ForeColor = $colSub; $topBar.Controls.Add($lblStatus)
+$lblStatus.Text = "就绪 · 选择盘符后点击开始扫描"; $lblStatus.Location = New-Object System.Drawing.Point(806, 18)
+$lblStatus.AutoSize = $true; $lblStatus.ForeColor = $colSub
+$lblStatus.BackColor = "#EDF0F5"
+$lblStatus.Padding = New-Object System.Windows.Forms.Padding(10, 4, 10, 4)
+$topBar.Controls.Add($lblStatus)
 
 $botBar = New-Object System.Windows.Forms.Panel
 $botBar.Dock = "Bottom"; $botBar.Height = 60; $botBar.BackColor = $colCard
@@ -291,6 +299,59 @@ $btnDel.FlatAppearance.MouseOverBackColor = "#278D42"
 $btnDel.BackColor = $colGreen; $btnDel.ForeColor = "White"
 $btnDel.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 10, [System.Drawing.FontStyle]::Bold)
 $botBar.Controls.Add($btnDel)
+
+# ---------- 统计概览卡（借鉴 WinUtil/仪表盘：4 张指标卡） ----------
+$statBar = New-Object System.Windows.Forms.Panel
+$statBar.Dock = "Top"; $statBar.Height = 76; $statBar.BackColor = $colBg
+$pageScan.Controls.Add($statBar)
+
+$script:statCards = @{}
+function New-StatCard([string]$key, [int]$x, [string]$accent, [string]$label, [string]$val) {
+    $card = New-Object System.Windows.Forms.Panel
+    $card.Location = New-Object System.Drawing.Point($x, 12); $card.Width = 248; $card.Height = 52
+    $card.BackColor = $colCard; $card.BorderStyle = "FixedSingle"
+    $strip = New-Object System.Windows.Forms.Panel
+    $strip.Dock = "Left"; $strip.Width = 5; $strip.BackColor = [System.Drawing.ColorTranslator]::FromHtml($accent)
+    $card.Controls.Add($strip)
+    $lblV = New-Object System.Windows.Forms.Label
+    $lblV.Text = $val; $lblV.Location = New-Object System.Drawing.Point(18, 4)
+    $lblV.AutoSize = $true; $lblV.ForeColor = $colText
+    $lblV.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 14, [System.Drawing.FontStyle]::Bold)
+    $card.Controls.Add($lblV)
+    $lblL = New-Object System.Windows.Forms.Label
+    $lblL.Text = $label; $lblL.Location = New-Object System.Drawing.Point(18, 30)
+    $lblL.AutoSize = $true; $lblL.ForeColor = $colSub
+    $lblL.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 8.5)
+    $card.Controls.Add($lblL)
+    $statBar.Controls.Add($card)
+    $script:statCards[$key] = @{ Card=$card; Val=$lblV; Label=$lblL }
+}
+New-StatCard "del"  12  $colGreen  "可删空间（待你确认）"  "--"
+New-StatCard "keep" 272 $colRed    "保留（系统/软件/个人）" "--"
+New-StatCard "jud"  532 $colYellow "需你判断"                "--"
+New-StatCard "cnt"  792 $colBrand  "已扫描目录"              "--"
+
+# ---------- 分类筛选 chips（借鉴 WinUtil：点击高亮筛选） ----------
+$chipsBar = New-Object System.Windows.Forms.Panel
+$chipsBar.Dock = "Top"; $chipsBar.Height = 44; $chipsBar.BackColor = $colBg
+$pageScan.Controls.Add($chipsBar)
+$script:chipBtns = @{}
+function New-Chip([string]$key, [int]$x, [string]$text, [bool]$active) {
+    $b = New-Object System.Windows.Forms.Button
+    $b.Text = $text; $b.Location = New-Object System.Drawing.Point($x, 7); $b.Width = 92; $b.Height = 30
+    $b.FlatStyle = "Flat"; $b.FlatAppearance.BorderSize = 0
+    $b.Tag = $key
+    if ($active) { $b.BackColor = $colBrand; $b.ForeColor = "White"; $b.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 9, [System.Drawing.FontStyle]::Bold) }
+    else { $b.BackColor = $colCard; $b.ForeColor = $colSub; $b.FlatAppearance.BorderColor = "#D5DDE8" }
+    $chipsBar.Controls.Add($b)
+    $script:chipBtns[$key] = $b
+    return $b
+}
+$script:catFilter = ""
+New-Chip "all" 12 "全部" $true
+New-Chip "G"  112 "🟢 可删" $false
+New-Chip "R"  212 "🔴 保留" $false
+New-Chip "Y"  312 "🟡 判断" $false
 
 $split = New-Object System.Windows.Forms.SplitContainer
 $split.Dock = "Fill"; $split.SplitterDistance = 740; $split.Panel1.BackColor = $colBg; $split.Panel2.BackColor = $colBg
@@ -649,7 +710,7 @@ function Start-Scan {
     $script:shared.Data = $null; $script:shared.Drive = $drive; $script:shared.FileCount = 0
     $script:allResults = $null
     $btnScan.Enabled = $false
-    $lblStatus.Text = "扫描中…"
+    Set-Status "扫描中…" "scan"
     $prog.Value = 0
     $runspace = [runspacefactory]::CreateRunspace()
     $runspace.Open()
@@ -659,19 +720,34 @@ function Start-Scan {
     $script:handle = $script:ps.BeginInvoke()
 }
 
-# 填充列表（可带搜索关键词过滤，保留勾选状态）
+# 状态徽章（带底色胶囊）
+function Set-Status([string]$text, [string]$mode) {
+    $lblStatus.Text = $text
+    switch ($mode) {
+        "scan"  { $lblStatus.BackColor = "#E0F5F4"; $lblStatus.ForeColor = $colBrandD }
+        "done"  { $lblStatus.BackColor = "#EAF7EE"; $lblStatus.ForeColor = $colGreen }
+        default { $lblStatus.BackColor = "#EDF0F5"; $lblStatus.ForeColor = $colSub }
+    }
+}
+
+# 填充列表（可带搜索关键词过滤，保留勾选状态；支持分类 chip 筛选）
 function Populate-List([string]$filter) {
     if ($null -eq $script:allResults) { return }
     # 收集当前勾选，重建后恢复
     $checkedSet = @{}
     foreach ($it in $list.Items) { if ($it.Checked) { $checkedSet[$it.Tag] = $true } }
     $list.BeginUpdate(); $list.Items.Clear()
-    $sumG = 0; $cntG = 0
+    $sumG = 0; $cntG = 0; $sumR = 0; $cntY = 0
     foreach ($r in $script:allResults) {
+        # 统计卡基于全量计算（不受筛选影响）
+        if ($r.Cat -eq "G") { $sumG += $r.SizeMB; $cntG++ }
+        elseif ($r.Cat -eq "R") { $sumR += $r.SizeMB }
+        else { $cntY++ }
         if ($filter) {
             $hay = ($r.Name + " " + $r.Desc + " " + $r.Path).ToLower()
             if ($hay -notlike "*$($filter.ToLower())*") { continue }
         }
+        if ($script:catFilter -and $r.Cat -ne $script:catFilter) { continue }
         $catTxt = switch ($r.Cat) { "R" { "🔴保留" } "G" { "🟢可删" } default { "🟡判断" } }
         $item = New-Object System.Windows.Forms.ListViewItem($r.Name)
         $item.Tag = $r.Path
@@ -679,22 +755,45 @@ function Populate-List([string]$filter) {
         $item.SubItems.Add($catTxt) | Out-Null
         $item.SubItems.Add($r.Desc) | Out-Null
         if ($checkedSet.ContainsKey($r.Path)) { $item.Checked = $true }
-        if ($r.Cat -eq "G") { $item.BackColor = "#EAF7EE"; $sumG += $r.SizeMB; $cntG++ }
+        if ($r.Cat -eq "G") { $item.BackColor = "#EAF7EE" }
         elseif ($r.Cat -eq "R") { $item.BackColor = "#FBEFF0" }
         else { $item.BackColor = "#FBF3E2" }
         [void]$list.Items.Add($item)
     }
     $list.EndUpdate()
-    if ($filter) { $lblStatus.Text = "已过滤「$filter」· 显示 $($list.Items.Count) 项" }
-    else { $lblStatus.Text = "扫描完成 · 可删约 $([math]::Round($sumG/1024,2)) GB（$cntG 项）" }
+    # 统计概览卡
+    $script:statCards["del"].Val.Text  = "$([math]::Round($sumG/1024,2)) GB · $cntG 项"
+    $script:statCards["keep"].Val.Text = "$([math]::Round($sumR/1024,2)) GB"
+    $script:statCards["jud"].Val.Text  = "$cntY 项"
+    $script:statCards["cnt"].Val.Text  = "$(@($script:allResults).Count) 个"
+    # 状态徽章
+    if ($filter) { Set-Status "已过滤「$filter」· 显示 $($list.Items.Count) 项" "idle" }
+    else { Set-Status "扫描完成 · 可删约 $([math]::Round($sumG/1024,2)) GB（$cntG 项）" "done" }
     Update-Chart
+}
+
+# 分类筛选 chip 点击
+foreach ($ck in @("all","G","R","Y")) {
+    $script:chipBtns[$ck].Add_Click({
+        param($s, $e)
+        $key = $s.Tag
+        $script:catFilter = if ($key -eq "all") { "" } else { [string]$key }
+        foreach ($kk in @("all","G","R","Y")) {
+            $bb = $script:chipBtns[$kk]
+            $act = ($kk -eq $key)
+            $bb.BackColor = if ($act) { $colBrand } else { $colCard }
+            $bb.ForeColor = if ($act) { "White" } else { $colSub }
+            $bb.Font = if ($act) { New-Object System.Drawing.Font("Microsoft YaHei UI", 9, [System.Drawing.FontStyle]::Bold) } else { New-Object System.Drawing.Font("Microsoft YaHei UI", 9) }
+        }
+        Populate-List $txtSearch.Text.Trim()
+    })
 }
 
 function Scan-Done {
     $btnScan.Enabled = $true
-    if ($script:shared.Error) { $lblStatus.Text = "扫描出错: $($script:shared.Error)"; return }
+    if ($script:shared.Error) { Set-Status "扫描出错: $($script:shared.Error)" "idle"; return }
     $script:allResults = $script:shared.Data
-    if ($null -eq $script:allResults) { $lblStatus.Text = "扫描完成（无结果）"; return }
+    if ($null -eq $script:allResults) { Set-Status "扫描完成（无结果）" "done"; return }
     Populate-List ""
 }
 
@@ -750,8 +849,8 @@ $timer.Add_Tick({
         $prog.Value = $script:shared.Progress
         if ($script:shared.Current) {
             $fc = $script:shared.FileCount
-            if ($fc -gt 0) { $lblStatus.Text = "扫描中: $($script:shared.Current) · 已处理 $fc 个文件" }
-            else { $lblStatus.Text = "扫描中: $($script:shared.Current)" }
+            if ($fc -gt 0) { Set-Status "扫描中: $($script:shared.Current) · 已处理 $fc 个文件" "scan" }
+            else { Set-Status "扫描中: $($script:shared.Current)" "scan" }
         }
         return
     }
