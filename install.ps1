@@ -32,8 +32,8 @@ function Install-Skill {
         if ($t.Path -and (Test-Path (Split-Path $t.Path -Parent))) {
             New-Item -ItemType Directory -Path $t.Path -Force | Out-Null
             Copy-Item "$here\SKILL.md" $t.Path -Force
-            Copy-Item "$here\references" "$t.Path\references" -Recurse -Force
-            Copy-Item "$here\scripts" "$t.Path\scripts" -Recurse -Force
+            Copy-Item "$here\references" "$($t.Path)\references" -Recurse -Force
+            Copy-Item "$here\scripts" "$($t.Path)\scripts" -Recurse -Force
             Write-Host "  ✓ 已安装到 $($t.Name) 技能目录: $($t.Path)" -ForegroundColor Green
             $installed = $true
         }
