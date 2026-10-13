@@ -4,7 +4,18 @@
 
 ---
 
-## [2026-10-13] pc-file-audit MCP Server 开发（PowerShell 原生实现 + 全协议实测）
+## [2026-10-13] GUI v1.2 现代视觉重设计（自绘条形图 + 布局修复）
+- 场景：用户反馈"你真需要优化一下界面设计"——v1.1 是默认 WinForms 白灰风、右侧条形图为 Label 色块、无品牌感
+- **v1.2 视觉方案（全部零依赖 WinForms 实现）**：
+  1. 品牌配色主题变量：浅灰蓝内容区 #F4F6FA / 白卡片 / 深蓝灰侧栏 #1F2A3D / 青绿主色 #14B8A6 / 三档分类色绿#2FA84F 红#E5484D 黄#E8B339
+  2. 侧边栏：Logo 品牌区 + 导航项带 4px 品牌色指示条（选中白字粗体，未选灰字）+ 底部版本号
+  3. **条形图从 Label 色块改为 GDI+ 自绘**：Panel.Add_Paint 事件里 LinearGradientBrush 圆角渐变条（GraphicsPath 4 段 AddArc）+ 名称截断 + 数值右对齐固定区，`$script:chartData` 存数据、Update-Chart 只 `Invalidate()`
+  4. 顶/底栏卡片化（白底），主按钮扁平化（FlatStyle=Flat + MouseOverBackColor），删除按钮品牌绿
+- **布局坑：SplitContainer 右侧面板被挤爆**——v1.1 SplitterDistance=860 时 chartBox 仅 ~200px 宽，条形图数值被条覆盖截断；修复=SplitterDistance 改 740 + 条形图分区布局（名称区122px/条区/数值区88px 右侧固定），实测数值完整显示
+- **PS5.1 验证 GUI 无头截图**：cu 截图显示的是另一会话（全白）→ 改用 `Add-Type System.Drawing+Windows.Forms` 后 `Graphics.CopyFromScreen` 截全屏 + `DrawImage(源矩形)` 裁剪窗口区域，保存 PNG 再 Read（窗口需先 SetForegroundWindow/ShowWindow 激活）
+- **GUI 也有 `$recycle.bin` 双引号变量展开 bug**（与 MCP 同源）：`Pattern="$recycle.bin"` 变成 `.bin`，规则匹配全失效 → 改单引号 '$recycle.bin'
+- 状态：待合并（"WinForms 现代视觉改造模式" 可复用）
+
 - 场景：用户拍板借鉴 Windows-MCP "能力即工具"，把扫描/分类/删除能力做成 MCP Server（零依赖 PowerShell）
 - **MCP 协议要点**：stdio 传输 = **newline-delimited JSON-RPC 2.0**（每行一条消息，无 Content-Length）；方法 initialize/tools/list/tools/call/ping/notifications/initialized；tools/call 响应 `{result:{content:[{type:"text",text:...}],isError:false}}`；脚本文件 UTF-8 BOM，stdout 用 `[Console]::OutputEncoding=UTF8 无 BOM`
 - **输出必须绕开 PS 管道**：用 `[Console]::Out.WriteLine($json)+Flush()`，任何 Write-Output/管道输出都会污染协议
