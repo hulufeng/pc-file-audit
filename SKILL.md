@@ -117,10 +117,41 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 - 验证参数：`-AutoScan D:` 启动后自动扫描指定盘，便于自动化截图验证
 - 辅助实现 `pc-file-audit-gui.py`（tkinter 版）仅在系统 Python 带完整 Tcl 时可用；沙箱/精简 Python 会报 `Can't find a usable init.tcl`，优先用 .ps1 版
 
+## MCP Server 模式（2026-10-13 加入）
+
+用户要求"让任意 AI 客户端（Claude/Cursor/豆包等）通过 MCP 协议调用扫描/分类/删除能力"时，交付 `pc-file-audit-mcp.ps1`（**PowerShell 原生实现 MCP stdio 协议，零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需 Python/uv/任何库）。借鉴 Windows-MCP（CursorTouch/Windows-MCP，MIT）"能力即工具"思想，代码全部原创。
+
+启动：`powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1`（MCP 客户端配置为本地 stdio server 即可）
+
+**7 个工具**（协议：newline-delimited JSON-RPC 2.0）：
+- `scan_disk(drive)` 全盘扫描一级/二级目录 → 名称/大小MB/分类/风险级/说明
+- `dir_size(path)` 目录占用
+- `get_category(path)` 三档分类判断
+- `search_files(drive, keyword, min_mb)` 大文件搜索
+- `list_rules()` 规则清单（38 条，与 GUI 同源数据化）
+- `delete_to_recycle(paths, confirm)` 安全删除
+- `change_history()` 变更收据读取
+
+**安全护栏（默认强制，借鉴 Windows-MCP 的安全配置思想但反过来默认全关风险面）**：
+- 扫描/查询工具全部只读
+- `delete_to_recycle` 必须携带 `confirm=YES` 才执行（无确认参数即拦截）
+- 删除只进回收站（SHFileOperationW，失败 Remove-Item 兜底）+ 写 `ChangeHistory.txt` 变更收据
+- 不提供 PowerShell/Registry 等全系统高危工具（Windows-MCP 默认全开，我们默认不开放）
+
+技术要点（实测验证）：
+- **MCP stdio = newline-delimited JSON-RPC**，每行一条消息；`[Console]::In.ReadLine()` 循环读、`[Console]::Out.WriteLine()` + `Flush()` 写（必须绕开 PS 管道，否则污染协议）
+- `[Console]::OutputEncoding = UTF8 无 BOM`；脚本文件本身 UTF-8 BOM
+- 测试方式：**管道批量喂 JSON 最稳**（`$req | powershell -File server.ps1`，服务器逐行响应）——不要用 ProcessStartInfo 重定向管道交互（PS 5.1 时序/编码坑多）
+- **坑：PS 双引号字符串里 `$RECYCLE.BIN`/`$recycle.bin` 会被当变量展开成 `.BIN`/`.bin`**——含 `$` 的模式必须用单引号
+- JSON Schema 工具描述里的 `"` 必须避免（PS 双引号内 `\"` 不转义），写 `confirm=YES` 不带引号
+- `change_history` 读文件用 `[IO.File]::ReadAllText`（`Get-Content -Raw` 会被 ConvertTo-Json 序列化成含 PSPath 的对象）
+- 分类规则复用 GUI 的 `$RULES` 数据结构（Pattern/Cat/Risk/Desc），保证 GUI 与 MCP 判定一致
+
 ## 资源
 
 - `scripts/scan_dirs.ps1` —— 目录占用扫描（一级/二级/大文件），只读
 - `pc-file-audit-gui.ps1` —— **可视化窗口 GUI（零依赖，客户电脑直接可跑）**
+- `pc-file-audit-mcp.ps1` —— **MCP Server（零依赖，任意 AI 客户端可接入）**
 - `references/dir-guide.md` —— Windows 常见目录功能对照表 + 分类规则
 - `references/fixes.md` —— 实战修复案例（服务文件缺失、SCM 缓存、卸载残留、回收站清不净）
 - `references/experience-log.md` —— **经验库**：每次任务的复盘沉淀，是自我迭代的载体

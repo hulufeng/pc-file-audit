@@ -61,6 +61,36 @@ powershell -ExecutionPolicy Bypass -File scripts/scan_dirs.ps1 -Drive D
 - L3 黑名单永远不做：停杀毒服务 / 动 System32 / 删个人目录 / bcdedit 写操作
 - 默认进回收站（回收站被禁用的机器自动降级为"清单确认+永久删"）
 
+## 🤖 MCP Server（让任意 AI 客户端直接调用扫描/删除能力）
+
+> 借鉴 [CursorTouch/Windows-MCP](https://github.com/CursorTouch/Windows-MCP)（MIT）"能力即工具"思想原创实现，**PowerShell 原生、零依赖**——客户机无需 Python/uv/任何库，只需 Windows 自带 PowerShell 5.1。安全护栏与 GUI 一致：只读默认、删除需 `confirm=YES`、只进回收站、写变更收据。
+
+**启动**：
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1
+```
+
+**在 Claude Desktop 注册**（`claude_desktop_config.json`）：
+```json
+{
+  "mcpServers": {
+    "pc-file-audit": {
+      "command": "powershell",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\path\\to\\pc-file-audit-mcp.ps1"]
+    }
+  }
+}
+```
+
+**7 个工具**：`scan_disk`（全盘扫描+分类）/ `dir_size`（目录占用）/ `get_category`（三档判断）/ `search_files`（大文件搜索）/ `list_rules`（规则清单）/ `delete_to_recycle`（安全删除，需 confirm）/ `change_history`（变更收据）。
+
+**安全护栏（默认强制）**：扫描/查询全只读；删除必须传 `confirm=YES`；删除进回收站 + 写 `ChangeHistory.txt`；不开放 PowerShell/Registry 等全系统高危工具。
+
+**手动自测**（管道方式，服务器逐行响应）：
+```powershell
+'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1
+```
+
 ## 📦 目录结构
 
 ```
@@ -71,8 +101,11 @@ pc-file-audit/
 │   ├── fixes.md              # 实战修复案例（服务/回收站/残留）
 │   ├── experience-log.md     # 经验库（自我迭代载体）
 │   └── decisions.md          # 用户决策记忆模板
-└── scripts/
-    └── scan_dirs.ps1         # 目录占用扫描脚本（只读）
+├── scripts/
+│   ├── scan_dirs.ps1         # 目录占用扫描脚本（只读）
+│   ├── pc-file-audit-gui.ps1 # 可视化窗口 GUI（零依赖）
+│   ├── pc-file-audit-mcp.ps1 # MCP Server（零依赖）
+│   └── mcp_*_test.ps1        # MCP 全协议回归测试脚本
 ```
 
 ## 🤝 社区共建（收集所有人的优势）

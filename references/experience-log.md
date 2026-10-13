@@ -4,6 +4,21 @@
 
 ---
 
+## [2026-10-13] pc-file-audit MCP Server 开发（PowerShell 原生实现 + 全协议实测）
+- 场景：用户拍板借鉴 Windows-MCP "能力即工具"，把扫描/分类/删除能力做成 MCP Server（零依赖 PowerShell）
+- **MCP 协议要点**：stdio 传输 = **newline-delimited JSON-RPC 2.0**（每行一条消息，无 Content-Length）；方法 initialize/tools/list/tools/call/ping/notifications/initialized；tools/call 响应 `{result:{content:[{type:"text",text:...}],isError:false}}`；脚本文件 UTF-8 BOM，stdout 用 `[Console]::OutputEncoding=UTF8 无 BOM`
+- **输出必须绕开 PS 管道**：用 `[Console]::Out.WriteLine($json)+Flush()`，任何 Write-Output/管道输出都会污染协议
+- **测试方法（踩坑后最优）**：管道批量喂 JSON 最稳——`$req数组 | powershell -File server.ps1`，服务器逐行读逐行响应，一次测完全协议
+- **ProcessStartInfo 重定向交互的坑（PS 5.1）**：`.NET Framework 版 ProcessStartInfo 无 StandardInputEncoding 属性`；`StandardOutputEncoding` 设置后行为异常（曾读到 powershell 帮助文本）；ReadLine 会因服务器慢响应永久阻塞（全盘扫描步骤卡死）。**结论：测试一律用管道方式，不用进程管道交互**
+- **PS 双引号变量展开坑**：`"$RECYCLE.BIN"` 会把 `$RECYCLE` 当变量展开成 `.BIN`——含 `$` 的模式必须单引号 `'$RECYCLE.BIN'`（实测 scan_disk 误把过滤失效、回收站规则 Pattern 变成 `.bin`）
+- **工具描述 JSON 里的引号**：PS 双引号内 `\"` 不是转义（语法错误），描述写 `confirm=YES` 不带引号
+- **Get-Content -Raw 被 ConvertTo-Json 序列化**：返回含 PSPath/PSDrive 的对象而非字符串——读文件用 `[IO.File]::ReadAllText(path, UTF8)`
+- **安全护栏实测**：delete_to_recycle 无 confirm 拦截 ✓；confirm=YES → SHFileOperationW 进回收站 ✓ + ChangeHistory.txt 收据 ✓；规则 38 条与 GUI 同源（$RULES 数据化复用）
+- scan_disk 全盘：老机器 C 盘（~30GB）全遍历约 1-2 分钟，可接受；D 盘更慢
+- 状态：待合并（"PowerShell 原生 MCP Server"流程可复用）
+
+---
+
 ## [2026-10-13] GUI v1.1 UI 实测（4 借鉴点全落地 + UIA 验证方法）
 - 场景：为 GUI 落地 Winhance 全部借鉴点（搜索/配置/数据化/侧边导航）后，真实点击验证
 - **验证方法（WinForms 无头化测试三招）**：
