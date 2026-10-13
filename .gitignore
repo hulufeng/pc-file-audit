@@ -1,0 +1,6 @@
+# 运行时数据（不进版本库）
+ChangeHistory.txt
+*.log
+mcp_in.txt
+mcp_out.txt
+mcp_err.txt
