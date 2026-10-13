@@ -4,7 +4,17 @@
 
 ---
 
-## [2026-10-13] GUI v1.2 现代视觉重设计（自绘条形图 + 布局修复）
+## [2026-10-13] GUI v1.3 参考开源设计（FluentCleaner/WinUtil/PowerToys）
+- 场景：用户要求"去 GitHub 参考开源项目界面设计"继续优化 GUI
+- **调研结论（可复用设计清单）**：FluentCleaner（Builtbybel）WinUI 3 = 左导航+分类列表+结果三面板、圆角/明暗主题；FluentCleaner Classic 是 WinForms 版（CCleaner 风格导航）；WinUtil（ChrisTitusTech，PowerShell+WPF）= 左导航+内容区、**分类筛选 chips**、大按钮卡片；PowerToys = Fluent 设计系统。GitHub 主站 robots.txt 禁爬 → 走 raw README / 第三方介绍文
+- **v1.3 落地 4 点（全 WinForms 零依赖）**：
+  1. 统计概览卡：扫描页顶栏下 4 张仪表盘卡（左色条+大数字+小标签）——可删/保留/需判断/已扫目录，扫描后填充
+  2. 分类筛选 chips：全部/🟢可删/🔴保留/🟡判断 点击高亮筛选（复用 catFilter + Populate-List），**事件用 sender.Tag 取 key 避开 PS 闭包共享变量坑**
+  3. 侧边栏分组小节标题（"功能"）
+  4. 状态徽章胶囊：Label AutoSize+BackColor+Padding 三态（扫描中青蓝/完成绿/就绪灰）
+- **布局坑：Dock Top 控件按添加顺序排列**——topBar 之后依次 Add(statBar)、Add(chipsBar) 才在顶栏下方；统计卡基于全量计算、chips 只过滤列表（卡数字不受筛选影响）
+- 状态：待合并（"开源 UI 调研+WinForms 落地"可复用）
+
 - 场景：用户反馈"你真需要优化一下界面设计"——v1.1 是默认 WinForms 白灰风、右侧条形图为 Label 色块、无品牌感
 - **v1.2 视觉方案（全部零依赖 WinForms 实现）**：
   1. 品牌配色主题变量：浅灰蓝内容区 #F4F6FA / 白卡片 / 深蓝灰侧栏 #1F2A3D / 青绿主色 #14B8A6 / 三档分类色绿#2FA84F 红#E5484D 黄#E8B339
