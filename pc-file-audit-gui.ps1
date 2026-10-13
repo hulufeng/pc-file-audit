@@ -165,7 +165,7 @@ $colSub   = "#7A8BA0"   # 次要文字
 
 # ---------- 窗体 ----------
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "pc-file-audit · 电脑文件可视化审计 v1.2"
+$form.Text = "pc-file-audit · 电脑文件可视化审计 v1.3"
 $form.Size = New-Object System.Drawing.Size(1240, 780)
 $form.MinimumSize = New-Object System.Drawing.Size(1024, 640)
 $form.StartPosition = "CenterScreen"
@@ -219,7 +219,7 @@ $btnNavRules = New-NavBtn "  规则" 138 "rules"
 $btnNavAbout = New-NavBtn "  关于" 184 "about"
 
 $navFooter = New-Object System.Windows.Forms.Label
-$navFooter.Text = "v1.2 · 零依赖`nMIT 开源" 
+$navFooter.Text = "v1.3 · 零依赖`n个人免费 · 商用需授权" 
 $navFooter.Dock = "Bottom"; $navFooter.Height = 46
 $navFooter.ForeColor = "#5A6B82"; $navFooter.TextAlign = "MiddleCenter"
 $navFooter.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 8.5)
@@ -578,7 +578,7 @@ $lblAbout = New-Object System.Windows.Forms.Label
 $lblAbout.AutoSize = $false; $lblAbout.Dock = "Fill"
 $lblAbout.Padding = New-Object System.Windows.Forms.Padding(32)
 $lblAbout.Text = @"
-pc-file-audit · 电脑文件可视化审计  v1.2
+pc-file-audit · 电脑文件可视化审计  v1.3
 
 功能
   · 全盘扫描：目录占用 + 三档分类（🔴保留 / 🟢可删 / 🟡判断）
@@ -594,7 +594,7 @@ pc-file-audit · 电脑文件可视化审计  v1.2
   · 可追溯：每次删除写入收据，配合回收站可还原
 
 开源
-  · GitHub: github.com/hulufeng/pc-file-audit  ·  MIT 协议  ·  免费使用
+  · GitHub: github.com/hulufeng/pc-file-audit  ·  个人免费 · 商用需授权
   · 借鉴 Winhance / Windows-MCP 思路（能力即工具/变更收据/搜索/配置迁移/数据化），代码全部原创
 "@
 $lblAbout.ForeColor = $colText

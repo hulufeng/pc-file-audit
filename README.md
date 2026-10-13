@@ -1,12 +1,15 @@
 # pc-file-audit · PC 文件审计与清理决策技能
 
-> 让 AI 助手帮你把电脑上每个文件夹/文件"是什么、多大、能不能删"讲清楚，你逐项拍板，安全清理。**免费 · 开源 · 社区共建**
+> 让 AI 助手帮你把电脑上每个文件夹/文件"是什么、多大、能不能删"讲清楚，你逐项拍板，安全清理。**个人免费 · 商用需授权 · 社区共建**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: 个人免费·商用需授权](https://img.shields.io/badge/License-PersonalFree_CommercialAuth-orange)](LICENSE)
 ![Platform](https://img.shields.io/badge/Platform-Windows-blue)
 ![Language](https://img.shields.io/badge/Language-简体中文-brightgreen)
+![GUI](https://img.shields.io/badge/GUI-WinForms_零依赖-brightgreen)
 
 ---
+
+![pc-file-audit GUI v1.3 界面](docs/screenshot-v1.3.png)
 
 ## 🎯 这是什么
 
@@ -158,7 +161,11 @@ pc-file-audit/
 
 ## 📜 开源协议
 
-[MIT License](LICENSE) —— **完全免费**，商用/个人/修改都行，保留版权声明即可。
+[pc-file-audit 自定义许可协议](LICENSE)：
+
+- **个人使用完全免费**（自用、学习、修改都行）
+- **商用需作者（hulufeng）书面授权**——包括公司内部使用、对外服务、集成到商业产品、销售分发等
+- 详细条款见 [LICENSE](LICENSE)，商业合作可通过 GitHub Issues 联系
 
 ## 🗓️ 版本历史
 
