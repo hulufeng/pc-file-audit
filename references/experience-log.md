@@ -4,6 +4,18 @@
 
 ---
 
+## [2026-10-13] GUI v1.1 UI 实测（4 借鉴点全落地 + UIA 验证方法）
+- 场景：为 GUI 落地 Winhance 全部借鉴点（搜索/配置/数据化/侧边导航）后，真实点击验证
+- **验证方法（WinForms 无头化测试三招）**：
+  1. **UIAutomation 读控件树**：`Add-Type UIAutomationClient/Types` + `AutomationElement::FromHandle(句柄)` + `FindAll(Descendants, TrueCondition)` 遍历 `Current.Name`——不依赖截图渲染，直接确认控件文字（截图会因窗口重绘时序出现"卡片有框无字"假象，UIA 不受影响）
+  2. **P/Invoke 鼠标点击**：`SetCursorPos + mouse_event(2,0,0,0)+mouse_event(4,0,0,0)` 模拟点击，坐标从截屏 OCR 千分比换算（x/1000*1366, y/1000*768）
+  3. **模态对话框处理**：SaveFileDialog 用 SendKeys `{ENTER}` 保存；OpenFileDialog 用 SendKeys 输入完整路径+`{ENTER}` 打开；MessageBox 会拦截后续操作，处理完点掉
+- **UIA InvokePattern 的坑**：`InvokePattern.Invoke()` 对打开模态对话框的按钮会**阻塞等待对话框关闭**（实测表现为调用无返回）；改用鼠标点击方式触发
+- 实测结果：规则页 37 卡片渲染正常；导出→另存为→JSON 8.4KB 内容完整；导入→打开对话框→路径回车→成功返回
+- 状态：待合并（"WinForms GUI 自动化测试"流程可复用）
+
+---
+
 ## [2026-10-13] Winhance 研究借鉴（memstechtips/Winhance，13.5k stars）
 - 场景：用户要求安装 GitHub 的 Winhance（Windows 优化增强工具）并评估可借鉴点
 - 项目概况：C# WinUI 3（net10.0-windows，35 个 XAML 页），Clean Architecture（Core/Infrastructure/UI + WinGet COM 封装），功能=软件管理/系统优化/外观定制/高级工具（ISO/autounattend）/配置导入导出；61.5MB Inno Setup 安装器，Portable 模式可解压免安装
