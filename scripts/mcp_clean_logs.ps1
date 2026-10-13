@@ -1,4 +1,4 @@
-# mcp_clean_logs.ps1 — 用 MCP delete_to_recycle 清理豆包日志（实战演练）
+﻿# mcp_clean_logs.ps1 — 用 MCP delete_to_recycle 清理豆包日志（实战演练）
 $logs = @(
     "C:\Users\Administrator\AppData\Local\Doubao\User Data\sdk_storage\log\saman_2026.1013.0.log",
     "C:\Users\Administrator\AppData\Local\Doubao\User Data\sdk_storage\log\saman_2026.1011.2.log",
@@ -15,7 +15,7 @@ $req = @(
     ('{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"delete_to_recycle","arguments":{"paths":[' + $pathsJson + '],"confirm":"YES"}}}'),
     '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"change_history","arguments":{}}}'
 )
-$resp = $req | powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Doubao\new-chat-2\pc-file-audit\scripts\pc-file-audit-mcp.ps1"
+$resp = $req | powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Doubao\new-chat-2\qingpanxia\scripts\qingpanxia-mcp.ps1"
 "--- MCP 响应 ---"
 $resp | ForEach-Object { $_.Substring(0, [Math]::Min(500, $_.Length)) }
 

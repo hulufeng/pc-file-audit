@@ -1,9 +1,9 @@
 ﻿---
-name: pc-file-audit
+name: qingpanxia
 description: 电脑全盘文件功能审计与清理决策。当用户要求"分析电脑/磁盘上的所有文件是什么""看下这些文件夹是干什么的、还需要吗""清理空文件夹/残留目录""生成文件清理判断清单"时使用。覆盖 Windows 本地电脑：扫描目录占用 → 识别每个文件夹功能（软件/系统/个人数据/缓存残留）→ 三档分类（必须保留/明确可删/用户判断）→ 用户决策后执行清理（白名单+进回收站）→ 输出汇报与文档。
 ---
 
-# PC 文件审计（pc-file-audit）
+# PC 文件审计（qingpanxia）
 
 ## 概述
 
@@ -97,10 +97,10 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 
 ## 可视化窗口（GUI 模式，2026-10-12 加入）
 
-用户要求"扫客户电脑后做成可视化窗口"或需要给非技术用户自助清理时，交付 `pc-file-audit-gui.ps1`（PowerShell + WinForms，**零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需装 Python/任何库）。
+用户要求"扫客户电脑后做成可视化窗口"或需要给非技术用户自助清理时，交付 `qingpanxia-gui.ps1`（PowerShell + WinForms，**零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需装 Python/任何库）。
 
 用法（v1.3，2026-10-13 现代视觉 + 参考 FluentCleaner/WinUtil/PowerToys 开源设计）：
-1. 复制 `pc-file-audit-gui.ps1` 到客户电脑，右键 → 使用 PowerShell 运行（或双击）
+1. 复制 `qingpanxia-gui.ps1` 到客户电脑，右键 → 使用 PowerShell 运行（或双击）
 2. **左侧导航三页**：扫描 / 规则 / 关于（深色侧栏 + 品牌青绿指示条 + 分组小节标题）
 3. 扫描页：选择盘符 → 开始扫描 → **统计概览卡**（可删/保留/需判断/已扫目录 4 张仪表盘卡）→ 表格列出每个目录（名称/大小/🔴保留/🟢可删/🟡判断/说明）+ 右侧 GDI+ 自绘圆角渐变条形图 Top15
 4. **分类筛选 chips**：全部 / 🟢可删 / 🔴保留 / 🟡判断 一键筛选（点击高亮，可叠加搜索）；**搜索过滤**：顶部搜索框实时过滤（400ms 防抖），条形图随过滤联动
@@ -117,13 +117,13 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 - **WinForms 现代视觉零依赖套路**：主题色变量 + FlatStyle 扁平按钮 + Panel.Add_Paint 自绘（圆角 GraphicsPath + LinearGradientBrush 渐变条）+ Dock 分区布局 + Label 徽章胶囊（BackColor+AutoSize+Padding）
 - 脚本必须 UTF-8 BOM；`Add-Type -TypeDefinition` 内联 C# 实现回收站删除
 - 验证参数：`-AutoScan D:` 启动后自动扫描指定盘，便于自动化截图验证；无头截图用 `Graphics.CopyFromScreen` 全屏截 + `DrawImage(源矩形)` 裁剪窗口（cu 截图在另一会话会全白）
-- 辅助实现 `pc-file-audit-gui.py`（tkinter 版）仅在系统 Python 带完整 Tcl 时可用；沙箱/精简 Python 会报 `Can't find a usable init.tcl`，优先用 .ps1 版
+- 辅助实现 `qingpanxia-gui.py`（tkinter 版）仅在系统 Python 带完整 Tcl 时可用；沙箱/精简 Python 会报 `Can't find a usable init.tcl`，优先用 .ps1 版
 
 ## MCP Server 模式（2026-10-13 加入）
 
-用户要求"让任意 AI 客户端（Claude/Cursor/豆包等）通过 MCP 协议调用扫描/分类/删除能力"时，交付 `pc-file-audit-mcp.ps1`（**PowerShell 原生实现 MCP stdio 协议，零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需 Python/uv/任何库）。借鉴 Windows-MCP（CursorTouch/Windows-MCP，MIT）"能力即工具"思想，代码全部原创。
+用户要求"让任意 AI 客户端（Claude/Cursor/豆包等）通过 MCP 协议调用扫描/分类/删除能力"时，交付 `qingpanxia-mcp.ps1`（**PowerShell 原生实现 MCP stdio 协议，零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需 Python/uv/任何库）。借鉴 Windows-MCP（CursorTouch/Windows-MCP，MIT）"能力即工具"思想，代码全部原创。
 
-启动：`powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1`（MCP 客户端配置为本地 stdio server 即可）
+启动：`powershell -NoProfile -ExecutionPolicy Bypass -File qingpanxia-mcp.ps1`（MCP 客户端配置为本地 stdio server 即可）
 
 **7 个工具**（协议：newline-delimited JSON-RPC 2.0）：
 - `scan_disk(drive)` 全盘扫描一级/二级目录 → 名称/大小MB/分类/风险级/说明
@@ -152,8 +152,8 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 ## 资源
 
 - `scripts/scan_dirs.ps1` —— 目录占用扫描（一级/二级/大文件），只读
-- `pc-file-audit-gui.ps1` —— **可视化窗口 GUI（零依赖，客户电脑直接可跑）**
-- `pc-file-audit-mcp.ps1` —— **MCP Server（零依赖，任意 AI 客户端可接入）**
+- `qingpanxia-gui.ps1` —— **可视化窗口 GUI（零依赖，客户电脑直接可跑）**
+- `qingpanxia-mcp.ps1` —— **MCP Server（零依赖，任意 AI 客户端可接入）**
 - `references/dir-guide.md` —— Windows 常见目录功能对照表 + 分类规则
 - `references/fixes.md` —— 实战修复案例（服务文件缺失、SCM 缓存、卸载残留、回收站清不净）
 - `references/experience-log.md` —— **经验库**：每次任务的复盘沉淀，是自我迭代的载体

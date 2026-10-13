@@ -1,4 +1,4 @@
-﻿# pc-file-audit GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
+﻿# qingpanxia GUI —— 电脑文件可视化审计窗口（PowerShell + WinForms 零依赖版）
 # =============================================================================
 # 双击运行（或右键 -> 使用 PowerShell 运行）
 # 功能：选择盘符 -> 扫描 -> 表格三档分类（红/绿/黄）+ 搜索过滤 -> 勾选删除（进回收站）
@@ -92,7 +92,7 @@ function Show-History {
 # ---------- 配置导出 / 导入（原创实现，借鉴"配置可迁移"思路） ----------
 function Export-Config {
     $dlg = New-Object System.Windows.Forms.SaveFileDialog
-    $dlg.FileName = "pc-file-audit-config.json"; $dlg.Filter = "JSON 配置文件 (*.json)|*.json"
+    $dlg.FileName = "qingpanxia-config.json"; $dlg.Filter = "JSON 配置文件 (*.json)|*.json"
     if ($dlg.ShowDialog() -ne "OK") { return }
     try {
         $cfg = [pscustomobject]@{ Version = 1; Updated = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss"); Rules = $script:RULES }
@@ -165,7 +165,7 @@ $colSub   = "#7A8BA0"   # 次要文字
 
 # ---------- 窗体 ----------
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "pc-file-audit · 电脑文件可视化审计 v1.3"
+$form.Text = "清盘侠 · 电脑文件可视化审计 v1.3"
 $form.Size = New-Object System.Drawing.Size(1240, 780)
 $form.MinimumSize = New-Object System.Drawing.Size(1024, 640)
 $form.StartPosition = "CenterScreen"
@@ -181,12 +181,12 @@ $logoTop = New-Object System.Windows.Forms.Panel
 $logoTop.Dock = "Top"; $logoTop.Height = 68; $logoTop.BackColor = $colSide
 $navBar.Controls.Add($logoTop)
 $lblLogo = New-Object System.Windows.Forms.Label
-$lblLogo.Text = "PC 审计"; $lblLogo.Dock = "Top"; $lblLogo.Height = 34
+$lblLogo.Text = "清盘侠"; $lblLogo.Dock = "Top"; $lblLogo.Height = 34
 $lblLogo.ForeColor = "White"; $lblLogo.TextAlign = "MiddleCenter"
 $lblLogo.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 14, [System.Drawing.FontStyle]::Bold)
 $logoTop.Controls.Add($lblLogo)
 $lblLogoSub = New-Object System.Windows.Forms.Label
-$lblLogoSub.Text = "FILE AUDIT"; $lblLogoSub.Dock = "Top"; $lblLogoSub.Height = 20
+$lblLogoSub.Text = "QINGPANXIA"; $lblLogoSub.Dock = "Top"; $lblLogoSub.Height = 20
 $lblLogoSub.ForeColor = $colBrand; $lblLogoSub.TextAlign = "MiddleCenter"
 $lblLogoSub.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
 $logoTop.Controls.Add($lblLogoSub)
@@ -578,7 +578,7 @@ $lblAbout = New-Object System.Windows.Forms.Label
 $lblAbout.AutoSize = $false; $lblAbout.Dock = "Fill"
 $lblAbout.Padding = New-Object System.Windows.Forms.Padding(32)
 $lblAbout.Text = @"
-pc-file-audit · 电脑文件可视化审计  v1.3
+清盘侠 · 电脑文件可视化审计  v1.3
 
 功能
   · 全盘扫描：目录占用 + 三档分类（🔴保留 / 🟢可删 / 🟡判断）
@@ -594,7 +594,7 @@ pc-file-audit · 电脑文件可视化审计  v1.3
   · 可追溯：每次删除写入收据，配合回收站可还原
 
 开源
-  · GitHub: github.com/hulufeng/pc-file-audit  ·  个人免费 · 商用需授权
+  · GitHub: github.com/hulufeng/qingpanxia  ·  个人免费 · 商用需授权
   · 借鉴 Winhance / Windows-MCP 思路（能力即工具/变更收据/搜索/配置迁移/数据化），代码全部原创
 "@
 $lblAbout.ForeColor = $colText

@@ -1,5 +1,5 @@
-# mcp_delete_test.ps1 — 安全护栏真实删除实测
-$server = "D:\Doubao\new-chat-2\pc-file-audit\pc-file-audit-mcp.ps1"
+﻿# mcp_delete_test.ps1 — 安全护栏真实删除实测
+$server = "D:\Doubao\new-chat-2\qingpanxia\qingpanxia-mcp.ps1"
 $testFile = "D:\test_mcp_delete.txt"
 Set-Content $testFile "MCP delete safety test - will be moved to recycle bin" -Encoding UTF8
 "1. 测试文件已创建: $(Test-Path $testFile)  size=$(Get-Item $testFile).Length"
@@ -15,6 +15,6 @@ $resp | ForEach-Object { "RESP: $($_.Substring(0, [Math]::Min(400, $_.Length)))"
 
 "`n3. 验证文件已被移走: $(Test-Path $testFile)"
 "4. 变更收据 ChangeHistory.txt:"
-if (Test-Path "D:\Doubao\new-chat-2\pc-file-audit\ChangeHistory.txt") {
-    Get-Content "D:\Doubao\new-chat-2\pc-file-audit\ChangeHistory.txt" -Encoding UTF8 | Select-Object -Last 5
+if (Test-Path "D:\Doubao\new-chat-2\qingpanxia\ChangeHistory.txt") {
+    Get-Content "D:\Doubao\new-chat-2\qingpanxia\ChangeHistory.txt" -Encoding UTF8 | Select-Object -Last 5
 } else { "   (未创建)" }

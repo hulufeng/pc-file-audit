@@ -10,4 +10,4 @@ $req = @(
     '{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"search_files","arguments":{"drive":"C:","keyword":"log","min_mb":100}}}',
     '{"jsonrpc":"2.0","id":9,"method":"ping","params":{}}'
 )
-$req | powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Doubao\new-chat-2\pc-file-audit\pc-file-audit-mcp.ps1"
+$req | powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Doubao\new-chat-2\qingpanxia\qingpanxia-mcp.ps1"

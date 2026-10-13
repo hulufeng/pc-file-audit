@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-pc-file-audit GUI —— 电脑文件可视化审计窗口
+qingpanxia GUI —— 电脑文件可视化审计窗口
 ============================================
 扫描电脑各盘目录 → 识别每个文件夹功能 → 三档分类（红/绿/黄）
 → 可视化条形图 + 勾选删除（优先进回收站）
 
-运行：双击本文件 或  python pc-file-audit-gui.py
+运行：双击本文件 或  python qingpanxia-gui.py
 依赖：仅 Python 标准库（tkinter 随 Python 自带，Windows 直接可用）
 """
 import os
@@ -19,7 +19,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 # ---------- 常量 ----------
-APP_TITLE = "pc-file-audit · 电脑文件可视化审计"
+APP_TITLE = "qingpanxia · 电脑文件可视化审计"
 APP_VERSION = "1.0"
 SCAN_SKIP_TOP = {"$RECYCLE.BIN", "System Volume Information", "Documents and Settings", "Recovery", "Boot"}
 SCAN_SKIP_FILE = {"pagefile.sys", "swapfile.sys", "hiberfil.sys", "dumpstack.log.tmp"}

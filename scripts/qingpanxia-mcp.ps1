@@ -1,4 +1,4 @@
-﻿# pc-file-audit MCP Server —— 电脑文件审计能力开放给任意 AI 客户端（PowerShell 原生，零依赖）
+﻿# qingpanxia MCP Server —— 电脑文件审计能力开放给任意 AI 客户端（PowerShell 原生，零依赖）
 # =============================================================================
 # MCP(Model Context Protocol) stdio 传输：newline-delimited JSON-RPC 2.0
 # 任何支持 MCP 的客户端（Claude/Cursor/豆包等）可配置本脚本为本地 MCP Server
@@ -7,7 +7,7 @@
 #   - delete_to_recycle 必须携带 confirm="YES" 才执行，且只进回收站 + 写变更收据
 # 依赖：仅 Windows 自带 PowerShell 5.1（客户机免安装任何东西）
 # 编码：本文件须为 UTF-8 BOM；stdout 输出 UTF-8 无 BOM JSON（MCP 协议要求）
-# 启动：powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1
+# 启动：powershell -NoProfile -ExecutionPolicy Bypass -File qingpanxia-mcp.ps1
 # =============================================================================
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -310,7 +310,7 @@ function Handle-Initialize($id) {
     Send-Json @{ jsonrpc="2.0"; id=$id; result=@{
         protocolVersion="2024-11-05"
         capabilities=@{ tools=@{ listChanged=$false } }
-        serverInfo=@{ name="pc-file-audit-mcp"; version="1.0.0" }
+        serverInfo=@{ name="qingpanxia-mcp"; version="1.0.0" }
     } }
 }
 

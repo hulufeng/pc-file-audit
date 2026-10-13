@@ -8,7 +8,7 @@ $req = @(
     ('{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"delete_to_recycle","arguments":{"paths":[' + $pathsJson + '],"confirm":"YES"}}}'),
     '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"change_history","arguments":{}}}'
 )
-$resp = $req | powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Doubao\new-chat-2\pc-file-audit\scripts\pc-file-audit-mcp.ps1"
+$resp = $req | powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Doubao\new-chat-2\qingpanxia\scripts\qingpanxia-mcp.ps1"
 $resp | ForEach-Object { $_.Substring(0, [Math]::Min(300, $_.Length)) }
 "`n--- 再次检查剩余 ---"
 $after = @(Get-ChildItem $logDir -Filter "saman_*.log" -EA SilentlyContinue)

@@ -1,6 +1,6 @@
 ﻿# 经验库（experience-log）
 
-本文件是 pc-file-audit 的自我迭代载体。每次使用 Skill 完成任务后，按 SKILL.md「自我迭代协议」在**顶部**追加新经验条目。新条目在上，旧条目在下。
+本文件是 qingpanxia 的自我迭代载体。每次使用 Skill 完成任务后，按 SKILL.md「自我迭代协议」在**顶部**追加新经验条目。新条目在上，旧条目在下。
 
 ---
 
@@ -87,20 +87,20 @@
 - ⑤**回收站删除 C# 内联**：`Add-Type -TypeDefinition` 定义 SHFILEOPSTRUCT + SHFileOperation(FO_DELETE|FOF_ALLOWUNDO|FOF_NOCONFIRMATION|FOF_SILENT)
 - ⑥**验证钩子**：脚本支持 `-AutoScan D:` 参数启动即自动扫描，配合整屏截图（System.Drawing CopyFromScreen）自动化验证 GUI
 - ⑦**函数名坑**：PowerShell 里自定义函数名 `Del` 与 Remove-Item 别名冲突，非交互模式报"朗读和提示功能不可用"——函数名避开内置别名
-- 产物：`pc-file-audit-gui.ps1`（仓库根目录）+ `pc-file-audit-gui.py`（tkinter 备用）
+- 产物：`qingpanxia-gui.ps1`（仓库根目录）+ `qingpanxia-gui.py`（tkinter 备用）
 - 状态：待合并（GUI 流程可复用）
 
 ---
 
 ## [2026-10-12] 技能开源发布 GitHub 流程经验
-- 场景：把 pc-file-audit 发布为开源仓库（免费使用、社区共建迭代）
+- 场景：把 qingpanxia 发布为开源仓库（免费使用、社区共建迭代）
 - 关键经验：
   1. **GitHub 密码认证已废弃**：git/API 只能用 Token 或 OAuth，不要尝试账号密码
   2. **国内网络**：GitHub releases 资产下载会超时，git 用 `registry.npmmirror.com/-/binary/git-for-windows/` 镜像；api.github.com 可直连
   3. **沙箱内 GCM 不弹浏览器**：Git Credential Manager 的浏览器授权窗口在沙箱/后台会话弹不出来；改用 **GitHub Device Flow**（`POST github.com/login/device/code` → 用户浏览器输设备码 → 轮询 `login/oauth/access_token`），全程可脚本化、用户只需输 8 位码
   4. **curl 传 JSON 到 GitHub API**：PowerShell 内联中文 JSON 会转义出错（"Problems parsing JSON"），用 `[IO.File]::WriteAllText` 写 body 文件 + `--data-binary @file`
   5. token 用环境变量传递、`git credential approve` 存入凭据管理器，避免落盘命令历史
-- 发布物：github.com/hulufeng/pc-file-audit（MIT、README/CONTRIBUTING/Issue模板齐备）
+- 发布物：github.com/hulufeng/qingpanxia（MIT、README/CONTRIBUTING/Issue模板齐备）
 - 状态：已合并（"GitHub 发布"流程可复用）
 
 ---

@@ -1,4 +1,4 @@
-# pc-file-audit · PC 文件审计与清理决策技能
+﻿# 清盘侠（qingpanxia）· PC 文件审计与清理决策技能
 
 > 让 AI 助手帮你把电脑上每个文件夹/文件"是什么、多大、能不能删"讲清楚，你逐项拍板，安全清理。**个人免费 · 商用需授权 · 社区共建**
 
@@ -9,7 +9,7 @@
 
 ---
 
-![pc-file-audit GUI v1.3 界面](docs/screenshot-v1.3.png)
+![清盘侠 GUI v1.3 界面](docs/screenshot-v1.3.png)
 
 ## 🎯 这是什么
 
@@ -26,11 +26,11 @@
 
 ### 方式一：装进 AI 助手（推荐）
 
-把本仓库 `pc-file-audit/` 文件夹复制到你电脑的 Skill 目录：
+把本仓库 `qingpanxia/` 文件夹复制到你电脑的 Skill 目录：
 
 ```
-Windows:  %USERPROFILE%\.doubao\agent_mode\workspace\.user_skills\pc-file-audit
-Claude:   ~/.claude/skills/pc-file-audit
+Windows:  %USERPROFILE%\.doubao\agent_mode\workspace\.user_skills\qingpanxia
+Claude:   ~/.claude/skills/qingpanxia
 ```
 
 然后对 AI 说：
@@ -59,9 +59,9 @@ powershell -ExecutionPolicy Bypass -File scripts/scan_dirs.ps1 -Drive D
 ```json
 {
   "mcpServers": {
-    "pc-file-audit": {
+    "qingpanxia": {
       "command": "powershell",
-      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\path\\to\\pc-file-audit\\scripts\\pc-file-audit-mcp.ps1"]
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\path\\to\\qingpanxia\\scripts\\qingpanxia-mcp.ps1"]
     }
   }
 }
@@ -73,10 +73,10 @@ powershell -ExecutionPolicy Bypass -File scripts/scan_dirs.ps1 -Drive D
 |---|---|
 | **Claude Desktop** | 编辑 `%APPDATA%\Claude\claude_desktop_config.json`（MSIX 版在 `%LOCALAPPDATA%\Packages\Claude*\LocalCache\Roaming\Claude\`），粘贴上面片段，完全退出重启 |
 | **Cursor** | 设置 → MCP → Add new MCP server → 类型 stdio，command 填 `powershell`，参数填上表 args |
-| **Claude Code** | 终端执行 `claude mcp add --transport stdio pc-file-audit -- powershell -NoProfile -ExecutionPolicy Bypass -File "<完整路径>"` |
+| **Claude Code** | 终端执行 `claude mcp add --transport stdio qingpanxia -- powershell -NoProfile -ExecutionPolicy Bypass -File "<完整路径>"` |
 | **Gemini CLI** | 编辑 `%USERPROFILE%\.gemini\settings.json`，加 `"mcpServers": {...}` 段 |
 | **Qwen Code** | 编辑 `%USERPROFILE%\.qwen\settings.json`，加 `"mcpServers": {...}` 段 |
-| **Codex CLI** | 编辑 `%USERPROFILE%\.codex\config.toml`，加 `[mcp_servers.pc-file-audit] command="powershell" args=[...]` |
+| **Codex CLI** | 编辑 `%USERPROFILE%\.codex\config.toml`，加 `[mcp_servers.qingpanxia] command="powershell" args=[...]` |
 | **Cherry Studio / ChatWise / AnythingLLM 等** | 设置 → MCP → 添加本地服务器：command `powershell`，args 同上 |
 
 **⚠️ 安全提醒**：MCP 让 AI 获得操作电脑的能力，务必用可信的 AI 客户端、只配本机 localhost；本项目的删除护栏默认强制（只读扫描、删除需 `confirm=YES`、只进回收站+变更收据），与 Windows-MCP 默认全开相反，安装即安全。
@@ -101,16 +101,16 @@ powershell -ExecutionPolicy Bypass -File scripts/scan_dirs.ps1 -Drive D
 
 **启动**：
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File qingpanxia-mcp.ps1
 ```
 
 **在 Claude Desktop 注册**（`claude_desktop_config.json`）：
 ```json
 {
   "mcpServers": {
-    "pc-file-audit": {
+    "qingpanxia": {
       "command": "powershell",
-      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\path\\to\\pc-file-audit-mcp.ps1"]
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\path\\to\\qingpanxia-mcp.ps1"]
     }
   }
 }
@@ -122,13 +122,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1
 
 **手动自测**（管道方式，服务器逐行响应）：
 ```powershell
-'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | powershell -NoProfile -ExecutionPolicy Bypass -File pc-file-audit-mcp.ps1
+'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | powershell -NoProfile -ExecutionPolicy Bypass -File qingpanxia-mcp.ps1
 ```
 
 ## 📦 目录结构
 
 ```
-pc-file-audit/
+qingpanxia/
 ├── SKILL.md                  # 技能主文件（给 AI 读）
 ├── references/
 │   ├── dir-guide.md          # Windows 常见目录功能对照表
@@ -137,8 +137,8 @@ pc-file-audit/
 │   └── decisions.md          # 用户决策记忆模板
 ├── scripts/
 │   ├── scan_dirs.ps1         # 目录占用扫描脚本（只读）
-│   ├── pc-file-audit-gui.ps1 # 可视化窗口 GUI（零依赖）
-│   ├── pc-file-audit-mcp.ps1 # MCP Server（零依赖）
+│   ├── qingpanxia-gui.ps1 # 可视化窗口 GUI（零依赖）
+│   ├── qingpanxia-mcp.ps1 # MCP Server（零依赖）
 │   └── mcp_*_test.ps1        # MCP 全协议回归测试脚本
 ```
 
@@ -161,7 +161,7 @@ pc-file-audit/
 
 ## 📜 开源协议
 
-[pc-file-audit 自定义许可协议](LICENSE)：
+[qingpanxia 自定义许可协议](LICENSE)：
 
 - **个人使用完全免费**（自用、学习、修改都行）
 - **商用需作者（hulufeng）书面授权**——包括公司内部使用、对外服务、集成到商业产品、销售分发等

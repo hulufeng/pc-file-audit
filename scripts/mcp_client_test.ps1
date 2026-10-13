@@ -1,6 +1,6 @@
-﻿# mcp_client_test.ps1 — 模拟 MCP 客户端测试 pc-file-audit-mcp.ps1（stdio 协议全流程）
+﻿# mcp_client_test.ps1 — 模拟 MCP 客户端测试 qingpanxia-mcp.ps1（stdio 协议全流程）
 # 用法: powershell -NoProfile -ExecutionPolicy Bypass -File mcp_client_test.ps1
-$server = "D:\Doubao\new-chat-2\pc-file-audit\pc-file-audit-mcp.ps1"
+$server = "D:\Doubao\new-chat-2\qingpanxia\qingpanxia-mcp.ps1"
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = "powershell"
 $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$server`""
