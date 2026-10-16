@@ -205,33 +205,46 @@ function New-RoundBtn([string]$text, [int]$x, [int]$y, [int]$w, [int]$h, [string
     $b.Tag = $mode
     $b.Add_Paint({
         param($s, $e)
-        $g = $e.Graphics
-        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $r = 9
-        $path = New-RoundedPath 0 0 ($s.ClientSize.Width - 1) ($s.ClientSize.Height - 1) $r
-        $mode = $s.Tag
-        $hover = ($s.FlatAppearance.MouseOverBackColor -eq [System.Drawing.Color]::Transparent) -and $s.Capture
-        switch ($mode) {
-            "primary" {
-                $c1 = [System.Drawing.ColorTranslator]::FromHtml($colBrand)
-                $c2 = [System.Drawing.ColorTranslator]::FromHtml($colBrandD)
-                $br = New-Object System.Drawing.Drawing2D.LinearGradientBrush($s.ClientRectangle, $c1, $c2, [System.Drawing.Drawing2D.LinearGradientMode]::Horizontal)
-                $g.FillPath($br, $path); $br.Dispose()
-                $s.ForeColor = "White"
+        try {
+            $g = $e.Graphics
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
+            $r = 9
+            $path = New-RoundedPath 0 0 ($s.ClientSize.Width - 1) ($s.ClientSize.Height - 1) $r
+            $mode = $s.Tag
+            $txtColor = [System.Drawing.ColorTranslator]::FromHtml($colText)
+            switch ($mode) {
+                "primary" {
+                    $c1 = [System.Drawing.ColorTranslator]::FromHtml($colBrand)
+                    $c2 = [System.Drawing.ColorTranslator]::FromHtml($colBrandD)
+                    $br = New-Object System.Drawing.Drawing2D.LinearGradientBrush($s.ClientRectangle, $c1, $c2, [System.Drawing.Drawing2D.LinearGradientMode]::Horizontal)
+                    $g.FillPath($br, $path); $br.Dispose()
+                    $txtColor = [System.Drawing.Color]::White
+                }
+                "danger" {
+                    $br = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($colGreen))
+                    $g.FillPath($br, $path); $br.Dispose()
+                    $txtColor = [System.Drawing.Color]::White
+                }
+                default {
+                    $br = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($colSurface))
+                    $g.FillPath($br, $path); $br.Dispose()
+                    $g.DrawPath((New-Object System.Drawing.Pen([System.Drawing.ColorTranslator]::FromHtml($colBorder))), $path)
+                    $txtColor = [System.Drawing.ColorTranslator]::FromHtml($colText)
+                }
             }
-            "danger" {
-                $br = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($colGreen))
-                $g.FillPath($br, $path); $br.Dispose()
-                $s.ForeColor = "White"
-            }
-            default {
-                $br = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($colSurface))
-                $g.FillPath($br, $path); $br.Dispose()
-                $g.DrawPath((New-Object System.Drawing.Pen([System.Drawing.ColorTranslator]::FromHtml($colBorder))), $path)
-                $s.ForeColor = [System.Drawing.ColorTranslator]::FromHtml($colText)
-            }
+            # 手动绘制文字（.NET 按钮文字先于 Paint 事件绘制，填充背景会盖住文字，必须自绘）
+            $txtBrush = New-Object System.Drawing.SolidBrush($txtColor)
+            $tf = New-Object System.Drawing.StringFormat
+            $tf.Alignment = [System.Drawing.StringAlignment]::Center
+            $tf.LineAlignment = [System.Drawing.StringAlignment]::Center
+            $rect = New-Object System.Drawing.RectangleF(6, 0, ($s.ClientSize.Width - 12), $s.ClientSize.Height)
+            $g.DrawString($s.Text, $s.Font, $txtBrush, $rect, $tf)
+            $txtBrush.Dispose(); $tf.Dispose()
+            $path.Dispose()
+        } catch {
+            [IO.File]::AppendAllText($script:paintLog, "BTN_PAINT_ERR $($_.Exception.Message)`r`n")
         }
-        $path.Dispose()
     })
     $b.Add_MouseEnter({ param($s, $e) $s.Invalidate() })
     $b.Add_MouseLeave({ param($s, $e) $s.Invalidate() })
@@ -328,8 +341,9 @@ $navBar.Controls.Add($navFooter)
 $pageScan = New-Object System.Windows.Forms.Panel
 $pageScan.Dock = "Fill"; $contentHost.Controls.Add($pageScan)
 
-# 客户区尺寸（绝对定位基准）
-$CW = $form.ClientSize.Width
+# 客户区尺寸（绝对定位基准）——注意：页面实际宽度 = 窗口客户区 - 侧栏 172px
+# 之前用整个客户区宽做基准，导致右侧控件（删除按钮/进度条）超出版面被裁剪
+$CW = $form.ClientSize.Width - 172
 $CH = $form.ClientSize.Height
 $topH = 72; $statH = 100; $chipsH = 52; $botH = 64
 
@@ -367,13 +381,13 @@ $btnScan.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 10, [System
 $topBar.Controls.Add($btnScan)
 
 $txtSearch = New-Object System.Windows.Forms.TextBox
-$txtSearch.Location = New-Object System.Drawing.Point(850, 22); $txtSearch.Width = 250
+$txtSearch.Location = New-Object System.Drawing.Point(840, 22); $txtSearch.Width = 220
 $txtSearch.BorderStyle = "FixedSingle"; $txtSearch.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 9.5)
 $txtSearch.Add_GotFocus({ $txtSearch.ForeColor = $colText })
 $topBar.Controls.Add($txtSearch)
 $lblSearchHint = New-Object System.Windows.Forms.Label
 $lblSearchHint.Text = "🔍  搜索目录 / 说明"
-$lblSearchHint.Location = New-Object System.Drawing.Point(856, 27); $lblSearchHint.AutoSize = $true
+$lblSearchHint.Location = New-Object System.Drawing.Point(846, 27); $lblSearchHint.AutoSize = $true
 $lblSearchHint.ForeColor = $colMuted; $lblSearchHint.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 9)
 $lblSearchHint.Enabled = $false
 $topBar.Controls.Add($lblSearchHint)
@@ -381,7 +395,7 @@ $txtSearch.Add_TextChanged({ $lblSearchHint.Visible = ($txtSearch.Text.Trim().Le
 $txtSearch.Add_GotFocus({ $lblSearchHint.Visible = $false })
 
 $prog = New-Object System.Windows.Forms.ProgressBar
-$prog.Location = New-Object System.Drawing.Point(1116, 26); $prog.Width = 130; $prog.Height = 16
+$prog.Location = New-Object System.Drawing.Point(1000, 26); $prog.Width = 80; $prog.Height = 16
 $prog.Style = "Continuous"; $topBar.Controls.Add($prog)
 
 $lblStatus = New-Object System.Windows.Forms.Label
@@ -401,7 +415,7 @@ $pageScan.Controls.Add($statBar)
 $script:statCards = @{}
 function New-StatCard([string]$key, [int]$x, [string]$accent, [string]$icon, [string]$label) {
     # 统计卡改为 GDI+ 自绘（绕开 Label 布局/截断问题，数字 DrawString 直接渲染）
-    $card = New-Card $x 14 284 78
+    $card = New-Card $x 14 240 78
     $card.Tag = [pscustomobject]@{ Icon=$icon; Accent=$accent; Label=$label; Value="--" }
     $card.Add_Paint({
         param($s, $e)
@@ -442,9 +456,9 @@ function New-StatCard([string]$key, [int]$x, [string]$accent, [string]$icon, [st
     $script:statCards[$key] = @{ Card=$card }
 }
 New-StatCard "del"  0   $colGreen  "🗑"  "可删空间（待你确认）"
-New-StatCard "keep" 300 $colRed    "🛡"  "保留（系统/软件/个人）"
-New-StatCard "jud"  600 $colYellow "🤔"  "需你判断"
-New-StatCard "cnt"  900 $colBrand  "📁"  "已扫描目录"
+New-StatCard "keep" 252 $colRed    "🛡"  "保留（系统/软件/个人）"
+New-StatCard "jud"  504 $colYellow "🤔"  "需你判断"
+New-StatCard "cnt"  756 $colBrand  "📁"  "已扫描目录"
 
 function Set-StatValue([string]$key, [string]$value) {
     $script:statCards[$key].Card.Tag.Value = $value
@@ -779,6 +793,30 @@ $scanScript = {
         $low = $path.ToLower()
         foreach ($r in $rules) { if ($r.Cat -eq "G" -and $low -like "*$($r.Pattern)*") { return @("G", $r.Desc) } }
         foreach ($r in $rules) { if ($r.Cat -eq "R" -and $low -like "*$($r.Pattern)*") { return @("R", $r.Desc) } }
+        # 未命中规则：按已知目录功能字典给具体说明（让用户看到"这是什么"再判断）
+        $known = @(
+            @{ P='\$getcurrent';  D='系统升级残留目录（升级完成后一般可删）' }
+            @{ P='\$winreagent';  D='Windows 升级暂存目录（升级完成后一般可删）' }
+            @{ P='360sandbox';    D='360 安全浏览器沙箱缓存（可清理）' }
+            @{ P='\appdata';      D='软件数据与个人设置（建议保留）' }
+            @{ P='autodesk';      D='欧特克软件（CAD/3D 设计）数据与缓存' }
+            @{ P='\db';          D='数据库相关文件目录' }
+            @{ P='\drivers';      D='硬件驱动程序（勿删）' }
+            @{ P='\audio';        D='声卡驱动/音频相关文件' }
+            @{ P='\camera';       D='摄像头驱动相关文件' }
+            @{ P='cardreader';    D='读卡器驱动（勿删）' }
+            @{ P='espressif';     D='ESP32/乐鑫微控制器开发工具链' }
+            @{ P='\inetpub';      D='IIS 网站发布目录（含网站文件勿删）' }
+            @{ P='jetbraincrack'; D='JetBrains 工具破解残留（可删）' }
+            @{ P='lenovoquickfix';D='联想电脑诊断/修复工具' }
+            @{ P='perflogs';      D='系统性能日志（可清理）' }
+            @{ P='cpolar';        D='内网穿透工具 cpolar 安装目录' }
+            @{ P='python3';       D='Python 解释器安装目录（程序依赖勿删）' }
+            @{ P='\program files';D='已安装软件程序（勿删）' }
+            @{ P='\programdata';  D='软件共享数据/配置（勿删）' }
+            @{ P='\users';        D='用户个人数据（勿删）' }
+        )
+        foreach ($k in $known) { if ($low -like "*$($k.P)*") { return @("Y", $k.D) } }
         return @("Y", "用户判断是否继续使用")
     }
     function Get-DirSizeMB([string]$path, $shared) {
@@ -948,10 +986,10 @@ $lblTip.Text = "🟢 可删　🟡 需判断　🔴 保留　·　勾选后删�
 $lblTip.Location = New-Object System.Drawing.Point(28, 22); $lblTip.AutoSize = $true
 $lblTip.ForeColor = $colSub; $botBar.Controls.Add($lblTip)
 
-$btnView = New-RoundBtn "查看删除记录" 830 14 132 36 "secondary"
+$btnView = New-RoundBtn "查看删除记录" 700 14 140 36 "secondary"
 $botBar.Controls.Add($btnView)
 
-$btnDel = New-RoundBtn "删除勾选项（进回收站）" 974 14 210 36 "danger"
+$btnDel = New-RoundBtn "删除勾选项（进回收站）" 850 14 230 36 "danger"
 $btnDel.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 10, [System.Drawing.FontStyle]::Bold)
 $botBar.Controls.Add($btnDel)
 

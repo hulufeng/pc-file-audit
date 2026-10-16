@@ -99,7 +99,7 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 
 用户要求"扫客户电脑后做成可视化窗口"或需要给非技术用户自助清理时，交付 `qingpanxia-gui.ps1`（PowerShell + WinForms，**零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需装 Python/任何库）。
 
-用法（v1.4.1，2026-10-16：v1.4 现代化改版 + 布局遮挡/统计卡修复）：
+用法（v1.4.2，2026-10-16：v1.4 现代化改版 + 布局遮挡/统计卡修复 + 按钮文字自绘 + 说明列详细化）：
 1. 复制 `qingpanxia-gui.ps1` 到客户电脑，右键 → 使用 PowerShell 运行（或双击）
 2. **左侧导航三页**：扫描 / 规则 / 关于（深色侧栏 #101828 + 品牌青绿 #14B8A6 指示条 + 分组小节标题 + 底部版本/授权信息）
 3. 扫描页：顶栏（盘符/开始扫描/搜索框，主按钮青绿渐变圆角）→ **统计概览卡**（可删/保留/需判断/已扫目录 4 张圆角卡片：左侧色条 + emoji 图标 + 大数字粗体 + 小标签）→ 表格列出每个目录（名称/大小/🔴保留/🟢可删/🟡判断/说明，行按分类淡色底）+ 右侧 GDI+ 自绘圆角渐变条形图 Top15（轨道+渐变条+数值）
@@ -119,6 +119,11 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 - **v1.4.1 硬坑 ① WinForms Dock 顺序**：同容器 `Fill` 与 `Left` 混用时，**后 Add 的控件 Z-order 在前、先布局**——若 `contentHost(Fill)` 在 `navBar(Left)` 之后 Add，Fill 先占满全窗、Left 再盖上来，左侧 172px 被侧栏遮挡（现象：第一张统计卡"消失/截断"，顶栏控件叠位）。解法：**`Fill` 容器必须先于 `Left` 侧栏 Add**；页面内各分区（topBar/statBar/chipsBar/split/botBar）用绝对定位 + Anchor，不依赖 Dock
 - **v1.4.1 硬坑 ② 统计卡数字"截断"实为遮挡**：卡片 1 数字显示不全常被误判为 Label 截断（AutoSize/固定宽度都不解决），先查**是否被其他 Dock 控件遮挡**，再查渲染；遮挡根因修完后数字完整显示
 - **v1.4.1 统计卡 GDI+ 自绘**：圆角 Panel + `Tag` 存 `[pscustomobject]@{Icon;Accent;Label;Value}`，`Add_Paint` 里 `DrawString` 依次画色条/图标/数字/标签；更新统一走 `Set-StatValue(key,value)`（改 Tag + Invalidate）。DrawString 坐标相对卡片客户区；Paint 事件用 try/catch 包裹防止客户机渲染异常导致白卡
+- **v1.4.2 硬坑 ③ 绝对定位基准必须是页面实际宽**：侧栏 172px + 绝对定位时，`$CW = $form.ClientSize.Width - 172`（页面宽），不能直接用整个客户区宽。用全窗宽做基准 → 右侧控件（删除按钮 x974+210=1184、进度条 x1116+130、搜索框右缘 1100）全部超出版面被 WinForms 裁剪 → 用户"看不到删除按钮"。改页面宽后删除按钮/进度条/搜索框全部恢复
+- **v1.4.2 硬坑 ④ .NET Button 文字先于 Paint 事件绘制**：WinForms 按钮的 Text 由系统在 Paint 事件**之前**画好，自定义 `Add_Paint` 里 `FillPath` 填充背景会把文字**盖掉**——症状：按钮只剩色块（青绿/绿色块可见）但"开始扫描/删除勾选项"等文字全消失。解法：Paint 填充后**手动 DrawString 重绘文字**（`$g.DrawString($s.Text, $s.Font, brush, rect, centerFormat)`），primary/danger 用白字、secondary 用深字
+- **v1.4.2 硬坑 ⑤ 同容器平级控件 Z-order**：WinForms 同父容器子控件，**先 Add 的在顶层（后绘制覆盖）、后 Add 的在底层**——btnView(先Add) 会盖住 btnDel(后Add) 的重叠区 → 删除按钮左半消失。解法：按钮**不重叠排布**（如 btnView x700 宽140、btnDel x850 宽230），而不是依赖 Z-order
+- **v1.4.2 硬坑 ⑥ `-like` 无通配符=精确匹配**：`$low -like $k.P`（P 为 `\$getcurrent` 无 `*`）永远不匹配长路径 → 目录功能字典不生效（说明列全是兜底"用户判断是否继续使用"）。必须写成 `-like "*$($k.P)*"`
+- **说明列增强（"内容不清楚"）**：🟡 判断类目录不要只给"用户判断是否继续使用"——在 Get-Category 里内置"已知目录功能字典"（\$getcurrent→系统升级残留、360sandbox→360沙箱缓存、espressif→ESP32工具链、jetbraincrack→破解残留、cpolar→内网穿透 等 20 条），未命中规则的目录先查字典给具体功能说明，让用户知道"这是什么"再判断
 - 脚本必须 UTF-8 BOM；`Add-Type -TypeDefinition` 内联 C# 实现回收站删除
 - 验证参数：`-AutoScan D:` 启动后自动扫描指定盘，便于自动化截图验证；无头截图用 `Graphics.CopyFromScreen` 全屏截 + `DrawImage(源矩形)` 裁剪窗口（cu 截图在另一会话会全白）
 - 辅助实现 `qingpanxia-gui.py`（tkinter 版）仅在系统 Python 带完整 Tcl 时可用；沙箱/精简 Python 会报 `Can't find a usable init.tcl`，优先用 .ps1 版
