@@ -141,6 +141,7 @@ public class Recycle {
 # ============================================================
 # v1.4 设计系统：配色 / 圆角工具 / 控件工厂
 # ============================================================
+$script:paintLog = Join-Path ([IO.Path]::GetTempPath()) "qingpanxia_paint.log"
 # —— 配色 ——
 $colBg      = "#F5F6F8"   # 主区浅灰
 $colSurface = "#FFFFFF"   # 卡片白
@@ -260,6 +261,12 @@ $form.BackColor = $colBg
 $form.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 10)
 
 # ---------- 左侧导航 ----------
+# 注意：contentHost(Fill) 必须先于 navBar(Left) Add——
+# WinForms 后 Add 的控件 Z-order 在前、先布局，若 Fill 后 Add 会先占满全窗，
+# 再被后布局的 Left 侧栏盖住左部（统计卡1 会被深色侧栏遮挡）
+$contentHost = New-Object System.Windows.Forms.Panel
+$contentHost.Dock = "Fill"; $form.Controls.Add($contentHost)
+
 $navBar = New-Object System.Windows.Forms.Panel
 $navBar.Dock = "Left"; $navBar.Width = 172; $navBar.BackColor = $colSide
 $form.Controls.Add($navBar)
@@ -317,16 +324,21 @@ $navFooter.ForeColor = "#55637A"; $navFooter.TextAlign = "MiddleCenter"
 $navFooter.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 8.5)
 $navBar.Controls.Add($navFooter)
 
-$contentHost = New-Object System.Windows.Forms.Panel
-$contentHost.Dock = "Fill"; $form.Controls.Add($contentHost)
-
-# ============ 页面 1：扫描 ============
+# ---------- 页面 1：扫描 ----------
 $pageScan = New-Object System.Windows.Forms.Panel
 $pageScan.Dock = "Fill"; $contentHost.Controls.Add($pageScan)
 
-# —— 顶栏 ——
+# 客户区尺寸（绝对定位基准）
+$CW = $form.ClientSize.Width
+$CH = $form.ClientSize.Height
+$topH = 72; $statH = 100; $chipsH = 52; $botH = 64
+
+# —— 顶栏（绝对定位 + Anchor，绕开 Dock 顺序坑） ——
 $topBar = New-Object System.Windows.Forms.Panel
-$topBar.Dock = "Top"; $topBar.Height = 72; $topBar.BackColor = $colSurface
+$topBar.Location = New-Object System.Drawing.Point(0, 0)
+$topBar.Size = New-Object System.Drawing.Size($CW, $topH)
+$topBar.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$topBar.BackColor = $colSurface
 $pageScan.Controls.Add($topBar)
 $lblTopTitle = New-Object System.Windows.Forms.Label
 $lblTopTitle.Text = "全盘扫描 · 逐项决策"
@@ -379,41 +391,72 @@ $topBar.Controls.Add($lblStatus)
 
 # —— 统计概览卡（4 张现代化指标卡） ——
 $statBar = New-Object System.Windows.Forms.Panel
-$statBar.Dock = "Top"; $statBar.Height = 100; $statBar.BackColor = $colBg
+$statBar.Location = New-Object System.Drawing.Point(0, $topH)
+$statBar.Size = New-Object System.Drawing.Size($CW, $statH)
+$statBar.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$statBar.BackColor = $colBg
 $statBar.Padding = New-Object System.Windows.Forms.Padding(24, 14, 24, 0)
 $pageScan.Controls.Add($statBar)
 
 $script:statCards = @{}
 function New-StatCard([string]$key, [int]$x, [string]$accent, [string]$icon, [string]$label) {
+    # 统计卡改为 GDI+ 自绘（绕开 Label 布局/截断问题，数字 DrawString 直接渲染）
     $card = New-Card $x 14 284 78
-    $strip = New-Object System.Windows.Forms.Panel
-    $strip.Dock = "Left"; $strip.Width = 4; $strip.BackColor = [System.Drawing.ColorTranslator]::FromHtml($accent)
-    $card.Controls.Add($strip)
-    $lblI = New-Object System.Windows.Forms.Label
-    $lblI.Text = $icon; $lblI.Location = New-Object System.Drawing.Point(20, 10)
-    $lblI.AutoSize = $true; $lblI.Font = New-Object System.Drawing.Font("Segoe UI Emoji", 17)
-    $card.Controls.Add($lblI)
-    $lblV = New-Object System.Windows.Forms.Label
-    $lblV.Text = "--"; $lblV.Location = New-Object System.Drawing.Point(64, 8)
-    $lblV.AutoSize = $true; $lblV.ForeColor = $colText
-    $lblV.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 14, [System.Drawing.FontStyle]::Bold)
-    $card.Controls.Add($lblV)
-    $lblL = New-Object System.Windows.Forms.Label
-    $lblL.Text = $label; $lblL.Location = New-Object System.Drawing.Point(64, 46)
-    $lblL.AutoSize = $true; $lblL.ForeColor = $colSub
-    $lblL.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 8.5)
-    $card.Controls.Add($lblL)
+    $card.Tag = [pscustomobject]@{ Icon=$icon; Accent=$accent; Label=$label; Value="--" }
+    $card.Add_Paint({
+        param($s, $e)
+        try {
+            $g = $e.Graphics
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
+            $d = $s.Tag
+            $h = $s.ClientSize.Height
+            if ($null -eq $d) {
+                [IO.File]::AppendAllText($script:paintLog, "PAINT_ERR_TAGNULL`r`n")
+                return
+            }
+            # 左侧色条
+            $stripBrush = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($d.Accent))
+            $g.FillRectangle($stripBrush, 0, 0, 4, $h)
+            $stripBrush.Dispose()
+            # 图标
+            $iconBrush = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($d.Accent))
+            $iconFont = New-Object System.Drawing.Font("Segoe UI Emoji", 15)
+            $g.DrawString($d.Icon, $iconFont, $iconBrush, 18, 12)
+            $iconBrush.Dispose(); $iconFont.Dispose()
+            # 数字（大号粗体，Left 对齐，绝不截断）
+            $valBrush = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($colText))
+            $valFont = New-Object System.Drawing.Font("Microsoft YaHei UI", 13, [System.Drawing.FontStyle]::Bold)
+            $g.DrawString([string]$d.Value, $valFont, $valBrush, 56, 6)
+            $valBrush.Dispose(); $valFont.Dispose()
+            # 标签
+            $lblBrush = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml($colSub))
+            $lblFont = New-Object System.Drawing.Font("Microsoft YaHei UI", 8.5)
+            $g.DrawString($d.Label, $lblFont, $lblBrush, 56, 48)
+            $lblBrush.Dispose(); $lblFont.Dispose()
+        } catch {
+            [IO.File]::AppendAllText($script:paintLog, "PAINT_ERR $($_.Exception.Message)`r`n")
+        }
+    })
     $statBar.Controls.Add($card)
-    $script:statCards[$key] = @{ Card=$card; Val=$lblV; Label=$lblL }
+    $script:statCards[$key] = @{ Card=$card }
 }
 New-StatCard "del"  0   $colGreen  "🗑"  "可删空间（待你确认）"
 New-StatCard "keep" 300 $colRed    "🛡"  "保留（系统/软件/个人）"
 New-StatCard "jud"  600 $colYellow "🤔"  "需你判断"
 New-StatCard "cnt"  900 $colBrand  "📁"  "已扫描目录"
 
+function Set-StatValue([string]$key, [string]$value) {
+    $script:statCards[$key].Card.Tag.Value = $value
+    $script:statCards[$key].Card.Invalidate()
+}
+
 # —— 分类筛选 chips（圆角胶囊） ——
 $chipsBar = New-Object System.Windows.Forms.Panel
-$chipsBar.Dock = "Top"; $chipsBar.Height = 52; $chipsBar.BackColor = $colBg
+$chipsBar.Location = New-Object System.Drawing.Point(0, ($topH + $statH))
+$chipsBar.Size = New-Object System.Drawing.Size($CW, $chipsH)
+$chipsBar.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$chipsBar.BackColor = $colBg
 $chipsBar.Padding = New-Object System.Windows.Forms.Padding(24, 0, 0, 0)
 $pageScan.Controls.Add($chipsBar)
 $script:chipBtns = @{}
@@ -443,7 +486,10 @@ Set-ChipState
 
 # —— 内容区：列表 + 条形图 ——
 $split = New-Object System.Windows.Forms.SplitContainer
-$split.Dock = "Fill"; $split.SplitterDistance = 780; $split.BackColor = $colBg
+$split.Location = New-Object System.Drawing.Point(0, ($topH + $statH + $chipsH))
+$split.Size = New-Object System.Drawing.Size($CW, ($CH - $topH - $statH - $chipsH - $botH))
+$split.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$split.SplitterDistance = 780; $split.BackColor = $colBg
 $split.Panel1.BackColor = $colBg; $split.Panel2.BackColor = $colBg
 $split.Panel1.Padding = New-Object System.Windows.Forms.Padding(24, 0, 8, 16)
 $split.Panel2.Padding = New-Object System.Windows.Forms.Padding(8, 0, 24, 16)
@@ -852,10 +898,10 @@ function Populate-List([string]$filter) {
         [void]$list.Items.Add($item)
     }
     $list.EndUpdate()
-    $script:statCards["del"].Val.Text  = "$([math]::Round($sumG/1024,2)) GB · $cntG 项"
-    $script:statCards["keep"].Val.Text = "$([math]::Round($sumR/1024,2)) GB"
-    $script:statCards["jud"].Val.Text  = "$cntY 项"
-    $script:statCards["cnt"].Val.Text  = "$(@($script:allResults).Count) 个"
+    Set-StatValue "del"  "$([math]::Round($sumG/1024,2)) GB · $cntG 项"
+    Set-StatValue "keep" "$([math]::Round($sumR/1024,2)) GB"
+    Set-StatValue "jud"  "$cntY 项"
+    Set-StatValue "cnt"  "$(@($script:allResults).Count) 个"
     if ($filter) { Set-Status "已过滤「$filter」· 显示 $($list.Items.Count) 项" "idle" }
     else { Set-Status "扫描完成 · 可删约 $([math]::Round($sumG/1024,2)) GB（$cntG 项）" "done" }
     Update-Chart
@@ -889,11 +935,13 @@ $searchTimer.Add_Tick({
     Populate-List $txtSearch.Text.Trim()
 })
 
-# 底部操作栏（扫描页 Dock Bottom 需在 Fill 之前加入——用 Add 到 pageScan 底部）
+# 底部操作栏（绝对定位）
 $botBar = New-Object System.Windows.Forms.Panel
-$botBar.Dock = "Bottom"; $botBar.Height = 64; $botBar.BackColor = $colSurface
+$botBar.Location = New-Object System.Drawing.Point(0, ($CH - $botH))
+$botBar.Size = New-Object System.Drawing.Size($CW, $botH)
+$botBar.Anchor = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$botBar.BackColor = $colSurface
 $pageScan.Controls.Add($botBar)
-$botBar.BringToFront()
 
 $lblTip = New-Object System.Windows.Forms.Label
 $lblTip.Text = "🟢 可删　🟡 需判断　🔴 保留　·　勾选后删除 → 优先进回收站，自动写变更收据"

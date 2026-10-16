@@ -99,7 +99,7 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 
 用户要求"扫客户电脑后做成可视化窗口"或需要给非技术用户自助清理时，交付 `qingpanxia-gui.ps1`（PowerShell + WinForms，**零依赖**——客户机只需 Windows 自带 PowerShell 5.1，无需装 Python/任何库）。
 
-用法（v1.4，2026-10-16 现代化改版：统一设计语言，零依赖 WinForms 纯自绘）：
+用法（v1.4.1，2026-10-16：v1.4 现代化改版 + 布局遮挡/统计卡修复）：
 1. 复制 `qingpanxia-gui.ps1` 到客户电脑，右键 → 使用 PowerShell 运行（或双击）
 2. **左侧导航三页**：扫描 / 规则 / 关于（深色侧栏 #101828 + 品牌青绿 #14B8A6 指示条 + 分组小节标题 + 底部版本/授权信息）
 3. 扫描页：顶栏（盘符/开始扫描/搜索框，主按钮青绿渐变圆角）→ **统计概览卡**（可删/保留/需判断/已扫目录 4 张圆角卡片：左侧色条 + emoji 图标 + 大数字粗体 + 小标签）→ 表格列出每个目录（名称/大小/🔴保留/🟢可删/🟡判断/说明，行按分类淡色底）+ 右侧 GDI+ 自绘圆角渐变条形图 Top15（轨道+渐变条+数值）
@@ -115,7 +115,10 @@ description: 电脑全盘文件功能审计与清理决策。当用户要求"分
 - 进度刷新：共享 `[hashtable]::Synchronized(@{...})` 由后台写入，UI 用 `System.Windows.Forms.Timer`（300ms）轮询读取
 - **分类规则已数据化**：`$RULES` 结构化数组（Pattern/Cat/Desc/Risk），内置约 38 条；匹配顺序固定**先 G（可删）再 R（保留）**，否则 `\windows` 会把 `Windows\Temp` 等缓存标成保留；风险分级 L1 安全清理/L2 需确认/L3 绝不能动；**注意 `$recycle.bin` 必须单引号**（双引号会被 PS 变量展开成 `.bin`）
 - 搜索/chips 过滤重建列表时保留勾选状态（先收集 Checked 集合，重建后恢复）；统计卡基于全量计算不受筛选影响
-- **WinForms 现代视觉零依赖套路**：主题色变量 + FlatStyle 扁平按钮 + Panel.Add_Paint 自绘（圆角 GraphicsPath + LinearGradientBrush 渐变条）+ Dock 分区布局 + Label 徽章胶囊（BackColor+AutoSize+Padding）
+- **WinForms 现代视觉零依赖套路**：主题色变量 + FlatStyle 扁平按钮 + Panel.Add_Paint 自绘（圆角 GraphicsPath + LinearGradientBrush 渐变条）+ Label 徽章胶囊（BackColor+AutoSize+Padding）
+- **v1.4.1 硬坑 ① WinForms Dock 顺序**：同容器 `Fill` 与 `Left` 混用时，**后 Add 的控件 Z-order 在前、先布局**——若 `contentHost(Fill)` 在 `navBar(Left)` 之后 Add，Fill 先占满全窗、Left 再盖上来，左侧 172px 被侧栏遮挡（现象：第一张统计卡"消失/截断"，顶栏控件叠位）。解法：**`Fill` 容器必须先于 `Left` 侧栏 Add**；页面内各分区（topBar/statBar/chipsBar/split/botBar）用绝对定位 + Anchor，不依赖 Dock
+- **v1.4.1 硬坑 ② 统计卡数字"截断"实为遮挡**：卡片 1 数字显示不全常被误判为 Label 截断（AutoSize/固定宽度都不解决），先查**是否被其他 Dock 控件遮挡**，再查渲染；遮挡根因修完后数字完整显示
+- **v1.4.1 统计卡 GDI+ 自绘**：圆角 Panel + `Tag` 存 `[pscustomobject]@{Icon;Accent;Label;Value}`，`Add_Paint` 里 `DrawString` 依次画色条/图标/数字/标签；更新统一走 `Set-StatValue(key,value)`（改 Tag + Invalidate）。DrawString 坐标相对卡片客户区；Paint 事件用 try/catch 包裹防止客户机渲染异常导致白卡
 - 脚本必须 UTF-8 BOM；`Add-Type -TypeDefinition` 内联 C# 实现回收站删除
 - 验证参数：`-AutoScan D:` 启动后自动扫描指定盘，便于自动化截图验证；无头截图用 `Graphics.CopyFromScreen` 全屏截 + `DrawImage(源矩形)` 裁剪窗口（cu 截图在另一会话会全白）
 - 辅助实现 `qingpanxia-gui.py`（tkinter 版）仅在系统 Python 带完整 Tcl 时可用；沙箱/精简 Python 会报 `Can't find a usable init.tcl`，优先用 .ps1 版
